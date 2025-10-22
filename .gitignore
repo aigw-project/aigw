@@ -1,0 +1,20 @@
+# binaries
+libgolang.so
+bin/
+# test generated files
+*.out
+*.test
+*.xml
+test.log
+test-envoy/
+# website
+site/public/
+site/resources/
+site/.hugo_build.lock
+site/tmp
+# dev files
+controller/config/config.yaml
+controller/**/cache
+controller/**/log
+/istio
+.idea/*

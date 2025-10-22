@@ -1,0 +1,37 @@
+name: lint
+
+on:
+  push:
+    branches: [ "main", "release/**" ]
+  pull_request:
+    branches: [ "main", "release/**" ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.run_number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  IN_CI: true
+
+jobs:
+  lint:
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.22'
+        cache-dependency-path: "**/*.sum"
+
+    - name: lint go
+      run: make lint-go
+
+    - name: lint license
+      run: |
+        if ! make lint-license; then
+          echo "Files without license detected. Please run 'make fix-license', edit the detected files and commit changes."
+          exit 1
+        fi

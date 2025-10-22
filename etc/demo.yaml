@@ -1,0 +1,83 @@
+static_resources:
+  listeners:
+    - name: listener_0
+      address:
+        socket_address:
+          address: 0.0.0.0
+          port_value: 10000
+      filter_chains:
+        - filters:
+            - name: envoy.filters.network.http_connection_manager
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                stat_prefix: ingress_http
+                access_log:
+                  - name: envoy.access_loggers.stdout
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog
+                http_filters:
+                  # The LDS configuration set the path of Go shared library.
+                  # The name of plugin_name is registered in the ./cmd/libgolang/main.go.
+                  # The value of library_id is not used yet.
+                  - name: htnn.filters.http.golang
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.golang.v3alpha.Config
+                      library_id: fm
+                      library_path: /etc/libgolang.so
+                      plugin_name: fm
+                  - name: htnn.filters.http.lua
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
+                  - name: envoy.filters.http.router
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+                route_config:
+                  name: local_route
+                  virtual_hosts:
+                    - name: local_service
+                      domains: ["*"]
+                      routes:
+                        - match:
+                            prefix: "/"
+                          direct_response:
+                            status: 200
+                            body:
+                              inline_string: ""
+                          typed_per_filter_config:
+                            # The RDS configuration set the per-route configuration.
+                            # Each plugin is run in the order specified under the field 'plugins'.
+                            htnn.filters.http.golang:
+                              "@type": type.googleapis.com/envoy.extensions.filters.http.golang.v3alpha.ConfigsPerRoute
+                              plugins_config:
+                                fm:
+                                  config:
+                                    "@type": type.googleapis.com/xds.type.v3.TypedStruct
+                                    value:
+                                      plugins:
+                                        - name: demo
+                                          config:
+                                            host_name: Tom
+                            htnn.filters.http.lua:
+                              "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.LuaPerRoute
+                              source_code:
+                                inline_string: |
+                                  function envoy_on_request(handle)
+                                    local headers = handle:headers()
+                                    local resp_headers = {[":status"] = "200"}
+                                    for key, value in pairs(headers) do
+                                      resp_headers["resp-" .. key] = value
+                                    end
+
+                                    local always_wrap_body = true
+                                    local body = handle:body(always_wrap_body)
+                                    local size = body:length()
+                                    local data = ""
+                                    if size > 0 then
+                                      data = body:getBytes(0, size)
+                                    end
+
+                                    handle:respond(
+                                      resp_headers,
+                                      data
+                                    )
+                                  end
