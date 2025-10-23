@@ -22,6 +22,7 @@ import (
 	endpointcfg "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/google/uuid"
+	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -136,4 +137,22 @@ func GenerateDeltaDiscoveryResponseWithRemovedResources(typeURL string, nonce st
 // GenerateNonce generate nonce from uuid. the istio use server version + uuid
 func GenerateNonce() string {
 	return uuid.New().String()
+}
+
+// MakeResource make resource for delta response with ttl
+func MakeResource(clusterName string, clusterAny *anypb.Any) *discovery.Resource {
+	resp := &discovery.Resource{
+		Name:     clusterName,
+		Resource: clusterAny,
+	}
+	return resp
+}
+
+// ConvertClusterToResource convert cluster to delta cds resource
+func ConvertClusterToResource(cdsClusters *clustercfg.Cluster, name string) *discovery.Resource {
+	clusterAny, err := anypb.New(cdsClusters)
+	if err != nil {
+		return nil
+	}
+	return MakeResource(name, clusterAny)
 }

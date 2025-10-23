@@ -27,6 +27,7 @@ import (
 
 	"github.com/aigw-project/aigw/pkg/circuitbreaker"
 	pkgcommon "github.com/aigw-project/aigw/pkg/common"
+	"github.com/aigw-project/aigw/pkg/metadata_center/types"
 	"github.com/aigw-project/aigw/pkg/prom"
 )
 
@@ -49,8 +50,6 @@ type Config struct {
 	EndpointCooldownPeriod   time.Duration
 	EndpointHalfOpenRequests int
 }
-
-var GlobalServiceDiscovery *ServiceDiscovery
 
 type nodeStatus struct {
 	discoveredAt time.Time
@@ -234,19 +233,27 @@ func (sd *ServiceDiscovery) getNode(host string) *nodeStatus {
 	return sd.nodeMap[host]
 }
 
-func init() {
-	log.Printf("init metadata center service discovery")
-	config := Config{
-		Domain:                   os.Getenv(AigwMetaDataCenter_Host),
-		ColdStartDelay:           pkgcommon.GetDurationFromEnv(AigwMetaDataCenter_ColdStartDelay, 10*time.Minute),
-		LookupInterval:           pkgcommon.GetDurationFromEnv(AigwMetaDataCenter_DnsLookUpInterval, 5*time.Second),
-		EndpointFailureThreshold: pkgcommon.GetIntFromEnv(AigwMetaDataCenter_EndpointFailureThreshold, 10),
-		EndpointCooldownPeriod:   pkgcommon.GetDurationFromEnv(AigwMetaDataCenter_EndpointCooldownPeriod, 5*time.Second),
-		EndpointHalfOpenRequests: pkgcommon.GetIntFromEnv(AigwMetaDataCenter_EndpointHalfOpenRequests, 3),
-		Port:                     pkgcommon.GetIntFromEnv(AigwMetaDataCenter_Port, 80),
-	}
+var (
+	createOnce sync.Once
+	service    *ServiceDiscovery
+)
 
-	GlobalServiceDiscovery = New(config)
-	GlobalServiceDiscovery.StartDNSLoop()
-	log.Printf("metadata center service discovery started")
+func CreateDomainService() types.Service {
+	createOnce.Do(func() {
+		log.Printf("init metadata center service discovery")
+		config := Config{
+			Domain:                   os.Getenv(AigwMetaDataCenter_Host),
+			ColdStartDelay:           pkgcommon.GetDurationFromEnv(AigwMetaDataCenter_ColdStartDelay, 10*time.Minute),
+			LookupInterval:           pkgcommon.GetDurationFromEnv(AigwMetaDataCenter_DnsLookUpInterval, 5*time.Second),
+			EndpointFailureThreshold: pkgcommon.GetIntFromEnv(AigwMetaDataCenter_EndpointFailureThreshold, 10),
+			EndpointCooldownPeriod:   pkgcommon.GetDurationFromEnv(AigwMetaDataCenter_EndpointCooldownPeriod, 5*time.Second),
+			EndpointHalfOpenRequests: pkgcommon.GetIntFromEnv(AigwMetaDataCenter_EndpointHalfOpenRequests, 3),
+			Port:                     pkgcommon.GetIntFromEnv(AigwMetaDataCenter_Port, 80),
+		}
+
+		service = New(config)
+		service.StartDNSLoop()
+		log.Printf("metadata center service discovery started")
+	})
+	return service
 }

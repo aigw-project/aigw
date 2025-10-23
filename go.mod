@@ -8,7 +8,8 @@ require (
 	github.com/openai/openai-go v0.1.0-beta.10
 	github.com/prometheus/client_golang v1.11.1
 	github.com/twmb/murmur3 v1.1.8
-	gopkg.in/natefinch/lumberjack.v2 v2.0.0
+	google.golang.org/grpc v1.67.1
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	mosn.io/htnn/api v0.5.1-0.20251005072852-ae2b0b28ac03
 )
 
@@ -25,9 +26,9 @@ require (
 
 require (
 	cel.dev/expr v0.16.0 // indirect
-	github.com/BurntSushi/toml v1.3.2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bytedance/sonic/loader v0.2.0 // indirect
+	github.com/census-instrumentation/opencensus-proto v0.4.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudwego/base64x v0.1.4 // indirect
 	github.com/cloudwego/iasm v0.2.0 // indirect
@@ -54,7 +55,5 @@ require (
 	golang.org/x/text v0.21.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20241021214115-324edc3d5d38 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20241113202542-65e8d215514f // indirect
-	google.golang.org/grpc v1.67.1 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

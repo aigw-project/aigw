@@ -71,7 +71,7 @@ func (m *Manager) ChooseHost(ctx context.Context, clusterName string, lbType loa
 	return cl.NextServer(ctx, lbType)
 }
 
-func (m *Manager) updateServers(info managertypes.ClusterInfo) {
+func (m *Manager) updateServers(info *managertypes.ClusterInfo) {
 	v, ok := m.clusters.Load(info.Name)
 	if ok {
 		cl, ok := v.(*Cluster)

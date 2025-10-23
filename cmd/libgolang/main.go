@@ -21,6 +21,7 @@ import (
 	"mosn.io/htnn/api/pkg/consumer"
 	"mosn.io/htnn/api/pkg/filtermanager"
 
+	_ "github.com/aigw-project/aigw/pkg/aigateway/clustermanager"
 	_ "github.com/aigw-project/aigw/pkg/metadata_center"
 	_ "github.com/aigw-project/aigw/plugins"
 )

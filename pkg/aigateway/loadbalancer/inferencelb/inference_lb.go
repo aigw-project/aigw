@@ -184,7 +184,7 @@ func filterHostsBySelector(hosts []types.Host, selector map[string]string) []typ
 
 func chooseHosts(candidateHosts []types.Host, clusterName, traceId string) types.Host {
 	i, addr := selectHosts(candidateHosts)
-	api.LogInfof("choose %d th address %+v for cluster [%s], traceID: %s", i, addr.Ip(), clusterName, traceId)
+	api.LogInfof("choose %d th address %+v for cluster [%s], traceID: %s", i, addr.Address(), clusterName, traceId)
 	return candidateHosts[i]
 }
 

@@ -29,6 +29,7 @@ import (
 	"github.com/aigw-project/aigw/pkg/aigateway"
 	"github.com/aigw-project/aigw/pkg/aigateway/discovery/common"
 	"github.com/aigw-project/aigw/pkg/aigateway/loadbalancer"
+	"github.com/aigw-project/aigw/pkg/aigateway/loadbalancer/types"
 	"github.com/aigw-project/aigw/pkg/errcode"
 	"github.com/aigw-project/aigw/pkg/request"
 	"github.com/aigw-project/aigw/pkg/trace"
@@ -163,7 +164,8 @@ func (f *filter) DecodeRequest(headers api.RequestHeaderMap, buffer api.BufferIn
 	f.cluster = reqData.Cluster
 
 	ctx := f.initLoadBalanceContext()
-	host, err := loadbalancer.ChooseServer(ctx, f.callbacks, headers, f.cluster, "inferencelb")
+	algorithm := f.config.GetAlgorithm()
+	host, err := loadbalancer.ChooseServer(ctx, f.callbacks, headers, f.cluster, types.LoadBalancerType(algorithm))
 	if err != nil {
 		api.LogErrorf("choose server address error, err: %v", err)
 		return f.noUpstream(err)

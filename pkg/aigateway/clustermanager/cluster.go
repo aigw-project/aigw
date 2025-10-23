@@ -54,6 +54,6 @@ func (c *Cluster) NextServer(ctx context.Context, lbType loadbalancertypes.LoadB
 	return host, nil
 }
 
-func (c *Cluster) updateServers(info types.ClusterInfo) {
+func (c *Cluster) updateServers(info *types.ClusterInfo) {
 	c.manager.UpdateCluster(info.Endpoints)
 }

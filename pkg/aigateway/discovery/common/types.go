@@ -15,23 +15,13 @@
 package common
 
 const (
-	TritonBackend      = "triton"
-	SglangBackend      = "sglang"
-	VllmBackend        = "vllm"
-	CoordinatorBackend = "coordinator"
-	TensorRTBackend    = "tensorrt-llm"
+	TritonBackend   = "triton"
+	SglangBackend   = "sglang"
+	VllmBackend     = "vllm"
+	TensorRTBackend = "tensorrt-llm"
 
 	DefaultModelName = "auto"
 )
-
-func IsValidBackend(backend string) bool {
-	switch backend {
-	case TritonBackend, SglangBackend, VllmBackend, CoordinatorBackend, TensorRTBackend:
-		return true
-	default:
-		return false
-	}
-}
 
 func IsHTTP1Backend(backend string) bool {
 	return backend != TritonBackend

@@ -23,7 +23,8 @@ import (
 	"mosn.io/htnn/api/pkg/filtermanager/api"
 
 	"github.com/aigw-project/aigw/pkg/async_log"
-	mc "github.com/aigw-project/aigw/pkg/metadata_center/types"
+	mc "github.com/aigw-project/aigw/pkg/metadata_center"
+	mctypes "github.com/aigw-project/aigw/pkg/metadata_center/types"
 	"github.com/aigw-project/aigw/pkg/prom"
 )
 
@@ -50,7 +51,7 @@ type LLMProxyConfig struct {
 	LbMappingConfigs map[string]*LBConfig
 
 	AsyncLogger *async_log.AsyncLogger
-	MC          mc.MetadataCenter
+	MC          mctypes.MetadataCenter
 }
 
 func buildModelMappings(mappingRules map[string]*Rules) map[string]*Mapping {
@@ -85,6 +86,8 @@ func (c *LLMProxyConfig) Init(cb api.ConfigCallbackHandler) error {
 		c.LbMappingConfigs = LbMappingConfigs
 	}
 	c.initLogger()
+
+	c.MC = mc.GetMetadataCenter()
 
 	// update metrics should be called in init phrase
 	c.updateMetrics()

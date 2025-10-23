@@ -15,6 +15,7 @@
 package metadata_center
 
 import (
+	"github.com/aigw-project/aigw/pkg/metadata_center/servicediscovery"
 	"github.com/aigw-project/aigw/pkg/metadata_center/types"
 )
 
@@ -37,5 +38,10 @@ func RegsiterService(s types.Service) {
 
 func init() {
 	// The default metadata center
-	instance = NewMetaCenter()
+	mc := NewMetaCenter()
+	RegisterMetadataCenter(mc)
+
+	// The default service discovery
+	s := servicediscovery.CreateDomainService()
+	RegsiterService(s)
 }

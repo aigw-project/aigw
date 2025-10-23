@@ -349,9 +349,8 @@ func NewMetaDataCenterClient() *MetaDataCenterClient {
 	retryTimes := pkgcommon.GetIntFromEnv(AigwMetaDataCenter_MaxFailoverRetry, 1)
 
 	return &MetaDataCenterClient{
-		client:           client,
-		failoverRetry:    retryTimes,
-		serviceDiscovery: servicediscovery.GlobalServiceDiscovery,
+		client:        client,
+		failoverRetry: retryTimes,
 	}
 }
 
@@ -369,13 +368,13 @@ func (m *MetaDataCenterClient) doRequestWithRetry(ctx context.Context, reqParam 
 		respBody, err := m.doSingleRequest(newContext, host, reqParam)
 		cancel()
 		if err == nil {
-			m.serviceDiscovery.ReportSuccess(host)
+			service.ReportSuccess(host)
 			updateMetacenterMetrics(host, reqParam.Method, reqParam.Path, time.Since(start).Microseconds())
 			return respBody, nil
 		}
 
 		lastErr = err
-		m.serviceDiscovery.ReportFailure(host)
+		service.ReportFailure(host)
 		api.LogWarnf("[TraceID: %s] request attempt %d/%d to host %s failed, error: %v. Retrying...", reqParam.TraceId, attempt+1, len(candidates), host, err)
 	}
 	return nil, fmt.Errorf("all %d attempts failed for hosts %v, last error: %w", len(candidates), candidates, lastErr)

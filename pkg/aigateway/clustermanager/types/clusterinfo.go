@@ -25,4 +25,4 @@ type ClusterInfo struct {
 	Endpoints []Endpoint
 }
 
-type ClusterInfoNotifier func(ClusterInfo)
+type ClusterInfoNotifier func(*ClusterInfo)

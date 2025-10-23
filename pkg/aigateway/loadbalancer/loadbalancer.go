@@ -19,10 +19,12 @@ import (
 
 	"mosn.io/htnn/api/pkg/filtermanager/api"
 
+	"github.com/aigw-project/aigw/pkg/aigateway/loadbalancer/inferencelb"
 	"github.com/aigw-project/aigw/pkg/aigateway/loadbalancer/types"
 )
 
 func ChooseServer(ctx context.Context, callbacks api.FilterCallbackHandler, header api.HeaderMap, cluster string, lbType types.LoadBalancerType) (types.Host, error) {
+	ctx = context.WithValue(ctx, inferencelb.KeyClusterName, cluster)
 	host, err := globalLoadBalancer.ChooseHost(ctx, cluster, lbType)
 	if err != nil {
 		return nil, err

@@ -23,7 +23,7 @@ BUILD_IMAGE     ?= $(DOCKER_MIRROR)docker.io/library/golang:1.22-bullseye
 # Use docker inspect --format='{{index .RepoDigests 0}}' m.daocloud.io/docker.io/envoyproxy/envoy:contrib-dev to get the sha256 ID.
 # We don't use the envoy:contrib-dev tag directly because it will be rewritten by the latest commit repeatedly and
 # our integration test suite pulls the image only if it's not present.
-PROXY_IMAGE     ?= $(DOCKER_MIRROR)docker.io/envoyproxy/envoy@sha256:34c15269e0ee344fd90da7cf081124633692454ccf1be70b8078d9d2ba41a27c
+PROXY_IMAGE     ?= $(DOCKER_MIRROR)docker.io/envoyproxy/envoy:contrib-v1.35.6
 DEV_TOOLS_IMAGE ?= reg.docker.alibaba-inc.com/tnn/htnn-dev-tools:20250124135210
 EXTRA_GO_BUILD_TAGS ?=
 # use for version update
@@ -137,14 +137,19 @@ integration-test:
 		PROXY_IMAGE=${PROXY_IMAGE} go test -tags integrationtest,envoy${ENVOY_API_VERSION},${EXTRA_GO_BUILD_TAGS} -count 1 -v ./tests/integration/...; \
 	fi
 
-.PHONY: run-plugin
-run-plugin:
-	docker run --name dev_your_plugin --rm -d -v $(PWD)/etc/demo.yaml:/etc/demo.yaml \
+.PHONY: run
+run:
+	docker run --name dev_aigw --rm -d \
+		-v $(PWD)/etc/demo.yaml:/etc/demo.yaml \
+		-v $(PWD)/etc/clusters.json:/etc/aigw/static_clusters.json \
 		-v $(PWD)/libgolang.so:/etc/libgolang.so \
 		-p 10000:10000 \
+		-p 15000:15000 \
+		-p 8080:8080 \
 		${PROXY_IMAGE} \
-		envoy -c /etc/demo.yaml
+		envoy -c /etc/demo.yaml \
+		--log-level info
 
-.PHONY: stop-plugin
-stop-plugin:
-	docker stop dev_your_plugin
+.PHONY: stop
+stop:
+	docker stop dev_aigw

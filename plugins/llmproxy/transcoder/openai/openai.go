@@ -133,7 +133,9 @@ func (t *openAiChatCompletionTranscoder) GetRequestData(headers api.RequestHeade
 		// This is the model name passed by user
 		reqData.ModelName = t.openAiChatMessage.Model
 		reqData.SceneName = targetModel.SceneName
+		reqData.BackendProtocol = targetModel.Backend
 		reqData.Cluster = targetModel.Cluster
+
 		// support lora and multi version
 		reqData.LbOptions = lboptions.NewLoadBalancerOptions(targetModel.RouteName, targetModel.Headers, targetModel.Subset)
 	}
@@ -148,7 +150,7 @@ func (t *openAiChatCompletionTranscoder) EncodeRequest(modelName, backendProtoco
 	buffer api.BufferInstance) (*transcoder.RequestContext, error) {
 
 	// TODO: get stream field from openAiChatMessage
-	isStream := true
+	isStream := false
 	t.isStream = isStream
 	reqCtx := &transcoder.RequestContext{
 		IsStream: isStream,
