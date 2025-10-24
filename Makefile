@@ -137,9 +137,14 @@ integration-test:
 		PROXY_IMAGE=${PROXY_IMAGE} go test -tags integrationtest,envoy${ENVOY_API_VERSION},${EXTRA_GO_BUILD_TAGS} -count 1 -v ./tests/integration/...; \
 	fi
 
+# the host of metadata center service, please follow aigw-project/metadata-center to start it.
+# it could be a domain or an IP.
+MC_HOST=
+
 .PHONY: run
 run:
 	docker run --name dev_aigw --rm -d \
+		-e AIGW_META_DATA_CENTER_HOST=${MC_HOST} \
 		-v $(PWD)/etc/demo.yaml:/etc/demo.yaml \
 		-v $(PWD)/etc/clusters.json:/etc/aigw/static_clusters.json \
 		-v $(PWD)/libgolang.so:/etc/libgolang.so \

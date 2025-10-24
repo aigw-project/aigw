@@ -42,7 +42,7 @@ const (
 )
 
 type Config struct {
-	Domain                   string
+	Host                     string
 	Port                     int
 	LookupInterval           time.Duration
 	ColdStartDelay           time.Duration
@@ -63,11 +63,38 @@ type ServiceDiscovery struct {
 	stopCh  chan struct{}
 }
 
-func New(config Config) *ServiceDiscovery {
-	return &ServiceDiscovery{
+func NewSimpleService(config Config) *ServiceDiscovery {
+	svc := &ServiceDiscovery{
 		config:  config,
 		nodeMap: make(map[string]*nodeStatus),
 		stopCh:  make(chan struct{}),
+	}
+
+	host := config.Host
+	if host == "" {
+		log.Printf("metadata center host is empty, service discovery not started")
+		return svc
+	}
+
+	// parse host if it's an IP address
+	if net.ParseIP(host) != nil {
+		svc.initStaticHost()
+	} else {
+		svc.StartDNSLoop()
+	}
+	return svc
+}
+
+func (sd *ServiceDiscovery) initStaticHost() {
+	log.Printf("using static ip %s as metadata center host", sd.config.Host)
+
+	sd.nodeMap[sd.config.Host] = &nodeStatus{
+		discoveredAt: time.Now(),
+		breaker: circuitbreaker.NewCircuitBreaker(circuitbreaker.CircuitBreakerConfig{
+			MaxFailures:      sd.config.EndpointFailureThreshold,
+			CooldownPeriod:   sd.config.EndpointCooldownPeriod,
+			HalfOpenRequests: sd.config.EndpointHalfOpenRequests,
+		}),
 	}
 }
 
@@ -100,17 +127,17 @@ func (sd *ServiceDiscovery) Shutdown() {
 }
 
 func (sd *ServiceDiscovery) dnsLookUp() {
-	hosts, err := net.LookupIP(sd.config.Domain)
+	hosts, err := net.LookupIP(sd.config.Host)
 	if err != nil {
-		api.LogErrorf("LookupIP failed for domain '%s': %v", sd.config.Domain, err)
+		api.LogErrorf("LookupIP failed for domain '%s': %v", sd.config.Host, err)
 		return
 	}
 
 	if len(hosts) == 0 {
-		api.LogErrorf("LookupIP for domain '%s' returned no hosts", sd.config.Domain)
+		api.LogErrorf("LookupIP for domain '%s' returned no hosts", sd.config.Host)
 	}
 
-	api.LogDebugf("DNS lookup for domain '%s' found hosts: %v", sd.config.Domain, hosts)
+	api.LogDebugf("DNS lookup for domain '%s' found hosts: %v", sd.config.Host, hosts)
 
 	config := circuitbreaker.CircuitBreakerConfig{
 		MaxFailures:      sd.config.EndpointFailureThreshold,
@@ -139,7 +166,7 @@ func (sd *ServiceDiscovery) dnsLookUp() {
 		if _, ok := newHosts[host]; !ok {
 			delete(sd.nodeMap, host)
 			prom.CircuitBreakerState.DeleteLabelValues(host)
-			api.LogInfof("Node removed for domain '%s': %s, removed breaker metrics", sd.config.Domain, host)
+			api.LogInfof("Node removed for domain '%s': %s, removed breaker metrics", sd.config.Host, host)
 		}
 	}
 }
@@ -153,9 +180,9 @@ func (sd *ServiceDiscovery) GetAvailableHosts() []string {
 	now := time.Now()
 
 	for host, node := range sd.nodeMap {
-		api.LogDebugf("Host %s for domain '%s' state: %s", host, sd.config.Domain, node.breaker.State())
+		api.LogDebugf("Host %s for domain '%s' state: %s", host, sd.config.Host, node.breaker.State())
 		if !node.breaker.Allow() {
-			api.LogDebugf("Host %s for domain '%s' is skipped due to open circuit breaker.", host, sd.config.Domain)
+			api.LogDebugf("Host %s for domain '%s' is skipped due to open circuit breaker.", host, sd.config.Host)
 			continue
 		}
 
@@ -168,11 +195,11 @@ func (sd *ServiceDiscovery) GetAvailableHosts() []string {
 	}
 
 	if len(warmHosts) > 0 {
-		api.LogDebugf("GetAvailableHosts for domain '%s' warm hosts result: %v, cold hosts result: %v", sd.config.Domain, warmHosts, coldHosts)
+		api.LogDebugf("GetAvailableHosts for domain '%s' warm hosts result: %v, cold hosts result: %v", sd.config.Host, warmHosts, coldHosts)
 		return warmHosts
 	}
 
-	api.LogDebugf("No warm hosts available for domain '%s', falling back to cold hosts: %v", sd.config.Domain, coldHosts)
+	api.LogDebugf("No warm hosts available for domain '%s', falling back to cold hosts: %v", sd.config.Host, coldHosts)
 	return coldHosts
 }
 
@@ -238,11 +265,13 @@ var (
 	service    *ServiceDiscovery
 )
 
-func CreateDomainService() types.Service {
+// CreateSimpleService creates a singleton ServiceDiscovery with config from environment variables
+// AIGW_META_DATA_CENTER_HOST could be an IP or domain name.
+func CreateSimpleService() types.Service {
 	createOnce.Do(func() {
 		log.Printf("init metadata center service discovery")
 		config := Config{
-			Domain:                   os.Getenv(AigwMetaDataCenter_Host),
+			Host:                     os.Getenv(AigwMetaDataCenter_Host),
 			ColdStartDelay:           pkgcommon.GetDurationFromEnv(AigwMetaDataCenter_ColdStartDelay, 10*time.Minute),
 			LookupInterval:           pkgcommon.GetDurationFromEnv(AigwMetaDataCenter_DnsLookUpInterval, 5*time.Second),
 			EndpointFailureThreshold: pkgcommon.GetIntFromEnv(AigwMetaDataCenter_EndpointFailureThreshold, 10),
@@ -251,8 +280,7 @@ func CreateDomainService() types.Service {
 			Port:                     pkgcommon.GetIntFromEnv(AigwMetaDataCenter_Port, 80),
 		}
 
-		service = New(config)
-		service.StartDNSLoop()
+		service = NewSimpleService(config)
 		log.Printf("metadata center service discovery started")
 	})
 	return service

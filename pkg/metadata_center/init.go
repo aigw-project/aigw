@@ -42,6 +42,6 @@ func init() {
 	RegisterMetadataCenter(mc)
 
 	// The default service discovery
-	s := servicediscovery.CreateDomainService()
+	s := servicediscovery.CreateSimpleService()
 	RegsiterService(s)
 }
