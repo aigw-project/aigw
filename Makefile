@@ -145,7 +145,7 @@ run:
 		-v $(PWD)/libgolang.so:/etc/libgolang.so \
 		-p 10000:10000 \
 		-p 15000:15000 \
-		-p 8080:8080 \
+		-p 10001:10001 \
 		${PROXY_IMAGE} \
 		envoy -c /etc/demo.yaml \
 		--log-level info
