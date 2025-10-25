@@ -93,18 +93,6 @@ func (t *openAiChatCompletionTranscoder) GetRequestData(headers api.RequestHeade
 		return
 	}
 
-	if !t.openAiChatMessage.MaxTokens.IsPresent() {
-		t.openAiChatMessage.MaxTokens = t.openAiChatMessage.MaxCompletionTokens
-	}
-
-	if !t.openAiChatMessage.Temperature.IsPresent() {
-		t.openAiChatMessage.Temperature = param.NewOpt(DefaultTemperature)
-	}
-
-	if !t.openAiChatMessage.TopP.IsPresent() {
-		t.openAiChatMessage.TopP = param.NewOpt(DefaultTopP)
-	}
-
 	if len(t.openAiChatMessage.Messages) == 0 {
 		err = errors.New("messages is empty")
 		return
@@ -158,10 +146,8 @@ func (t *openAiChatCompletionTranscoder) EncodeRequest(modelName, backendProtoco
 
 	t.backendProtocol = backendProtocol
 	if t.backendProtocol == common.SglangBackend || t.backendProtocol == common.VllmBackend || t.backendProtocol == common.TensorRTBackend {
-		headers.Del("content-length")
-		buf := t.convertOpenAiBody(modelName, t.backendProtocol)
-		err := buffer.Set(buf)
-		return reqCtx, err
+		// proxy the original request body to backend
+		return reqCtx, nil
 	}
 
 	var path string
