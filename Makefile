@@ -137,24 +137,34 @@ integration-test:
 		PROXY_IMAGE=${PROXY_IMAGE} go test -tags integrationtest,envoy${ENVOY_API_VERSION},${EXTRA_GO_BUILD_TAGS} -count 1 -v ./tests/integration/...; \
 	fi
 
-# the host of metadata center service, please follow aigw-project/metadata-center to start it.
-# it could be a domain or an IP.
-MC_HOST=
+# The host of metadata center service, it could be a domain or an IP.
+# Please follow aigw-project/metadata-center to start it.
+# Use the local IP as the metadata center host for developping.
+MC_HOST := "127.0.0.1"
+MC_PORT := 8080
+LOG_LEVEL := info
 
 .PHONY: run
 run:
 	docker run --name dev_aigw --rm -d \
 		-e AIGW_META_DATA_CENTER_HOST=${MC_HOST} \
+		-e AIGW_META_DATA_CENTER_PORT=${MC_PORT} \
 		-v $(PWD)/etc/demo.yaml:/etc/demo.yaml \
 		-v $(PWD)/etc/clusters.json:/etc/aigw/static_clusters.json \
-		-v $(PWD)/libgolang.so:/etc/libgolang.so \
+		-v $(PWD)/libgolang.so:/usr/local/envoy/libgolang.so \
 		-p 10000:10000 \
 		-p 15000:15000 \
 		-p 10001:10001 \
 		${PROXY_IMAGE} \
 		envoy -c /etc/demo.yaml \
-		--log-level info
+		--log-level ${LOG_LEVEL}
 
 .PHONY: stop
 stop:
 	docker stop dev_aigw
+
+.PHONY: build-image
+build-image:
+	docker build -t aigw -f Dockerfile . \
+		--build-arg BASE_IMAGE=${PROXY_IMAGE} \
+		--build-arg BUILD_IMAGE=${BUILD_IMAGE}

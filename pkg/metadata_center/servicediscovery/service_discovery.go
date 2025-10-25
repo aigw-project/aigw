@@ -86,9 +86,13 @@ func NewSimpleService(config Config) *ServiceDiscovery {
 }
 
 func (sd *ServiceDiscovery) initStaticHost() {
-	log.Printf("using static ip %s as metadata center host", sd.config.Host)
+	host := sd.config.Host
+	log.Printf("using static ip %s as metadata center host with no cold start", host)
 
-	sd.nodeMap[sd.config.Host] = &nodeStatus{
+	// disable cold start for static IP
+	sd.config.ColdStartDelay = 0
+
+	sd.nodeMap[host] = &nodeStatus{
 		discoveredAt: time.Now(),
 		breaker: circuitbreaker.NewCircuitBreaker(circuitbreaker.CircuitBreakerConfig{
 			MaxFailures:      sd.config.EndpointFailureThreshold,
@@ -96,6 +100,7 @@ func (sd *ServiceDiscovery) initStaticHost() {
 			HalfOpenRequests: sd.config.EndpointHalfOpenRequests,
 		}),
 	}
+	prom.UpdateBreakerState(host, sd.nodeMap[host].breaker.State())
 }
 
 func (sd *ServiceDiscovery) StartDNSLoop() {
@@ -218,7 +223,7 @@ func (sd *ServiceDiscovery) GetHosts(key string, num int) []string {
 	selected := make([]string, 0, n)
 	idx := int(hashKey(key) % uint32(hostLen))
 	for i := 0; i < n; i++ {
-		hosts = append(hosts, hosts[(idx+i)%hostLen])
+		selected = append(selected, hosts[(idx+i)%hostLen])
 	}
 
 	return selected
@@ -269,7 +274,6 @@ var (
 // AIGW_META_DATA_CENTER_HOST could be an IP or domain name.
 func CreateSimpleService() types.Service {
 	createOnce.Do(func() {
-		log.Printf("init metadata center service discovery")
 		config := Config{
 			Host:                     os.Getenv(AigwMetaDataCenter_Host),
 			ColdStartDelay:           pkgcommon.GetDurationFromEnv(AigwMetaDataCenter_ColdStartDelay, 10*time.Minute),
@@ -281,7 +285,7 @@ func CreateSimpleService() types.Service {
 		}
 
 		service = NewSimpleService(config)
-		log.Printf("metadata center service discovery started")
+		log.Printf("starting metadata center service discovery with host: %s, port: %d", config.Host, config.Port)
 	})
 	return service
 }
