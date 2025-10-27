@@ -15,6 +15,12 @@ AIGW 支持多种服务发现方式，也支持自定义实现服务发现方式
 1. docker
 2. golang 1.22+
 
+## 启动 Metadata Center
+
+AIGW 依赖 Metadata Center 组件来实现准实时的负载指标统计，
+请参考 [Metadata Center 文档](https://github.com/aigw-project/metadata-center/blob/main/docs/zh/developer_guide.md) 启动本地的 Metadata Center 服务。
+Metadata Center 默认监听本地 IP 和 `8080` 端口。
+
 ## 编译
 
 将 AIGW 编译为 shared object：
@@ -34,6 +40,8 @@ make run
 本服务将启动两个服务：
 1. `10000` 端口：AIGW 服务
 2. `10001` 端口：mock 推理服务
+
+并将默认使用本地启动的 Metadata Center 进行负载指标统计，默认使用本地 IP 和 `8080` 端口。
 
 ## 测试
 
