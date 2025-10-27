@@ -29,6 +29,7 @@ import (
 	"github.com/aigw-project/aigw/pkg/aigateway"
 	"github.com/aigw-project/aigw/pkg/aigateway/discovery/common"
 	"github.com/aigw-project/aigw/pkg/aigateway/loadbalancer"
+	"github.com/aigw-project/aigw/pkg/aigateway/loadbalancer/inferencelb"
 	"github.com/aigw-project/aigw/pkg/aigateway/loadbalancer/types"
 	"github.com/aigw-project/aigw/pkg/errcode"
 	"github.com/aigw-project/aigw/pkg/request"
@@ -103,6 +104,10 @@ func (f *filter) failedToConvertRequest(err error) api.ResultAction {
 
 func (f *filter) initLoadBalanceContext() context.Context {
 	ctx := context.Background()
+	ctx = context.WithValue(ctx, inferencelb.KeyTraceId, f.traceId)
+	ctx = context.WithValue(ctx, inferencelb.KeyModelName, f.modelName)
+	ctx = context.WithValue(ctx, inferencelb.KeyFilterCallback, f.callbacks)
+
 	ctx = f.setLoadBalanceConfig(ctx, f.modelName)
 	ctx = f.setPromptsContext(ctx)
 	return ctx

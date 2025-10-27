@@ -58,6 +58,10 @@ static_resources:
                             prefix: "/"
                           route:
                             cluster_header: "Cluster-Name"
+                            retry_policy:
+                              retry_on: "connect-failure,refused-stream,unavailable,cancelled,retriable-status-codes"
+                              num_retries: 1
+                              retriable_status_codes: [503]
                           typed_per_filter_config:
                             # The RDS configuration set the per-route configuration.
                             # Each plugin is run in the order specified under the field 'plugins'.

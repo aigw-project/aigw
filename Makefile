@@ -140,7 +140,7 @@ integration-test:
 # The host of metadata center service, it could be a domain or an IP.
 # Please follow aigw-project/metadata-center to start it.
 # Use the local IP as the metadata center host for developping.
-MC_HOST := "127.0.0.1"
+MC_HOST := $(shell ifconfig -a | awk '/inet / && $$2!="127.0.0.1" {print $$2}' | head -n 1)
 MC_PORT := 8080
 LOG_LEVEL := info
 
