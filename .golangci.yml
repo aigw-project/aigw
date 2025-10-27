@@ -1,0 +1,51 @@
+run:
+  build-tags:
+    - envoydev
+  path-ignore:
+    - ^vendor/
+
+linters:
+  disable-all: true
+  enable:
+    # sorted in alphabetic order
+    - bodyclose
+    - contextcheck
+    - errcheck
+    - gocheckcompilerdirectives
+    - gocritic
+    - gosimple
+    - govet
+    - ineffassign
+    - loggercheck
+    - nilerr
+    - staticcheck
+    - unconvert
+    - unparam
+    # - unused
+
+linters-settings:
+  gocritic:
+    disabled-tags:
+      - style
+      - experimental
+      - opinionated
+  gosec:
+    excludes:
+      - G402 # TLS InsecureSkipVerify may be true.
+  unparam:
+    check-exported: false
+
+issues:
+  exclude-rules:
+    - path: _test\.go # unit tests
+      linters:
+        - bodyclose
+        - errcheck
+        - gosec
+        - unparam
+    - path: \.pb\.go
+      linters:
+        - staticcheck
+  # Show the complete output
+  max-issues-per-linter: 0
+  max-same-issues: 0
