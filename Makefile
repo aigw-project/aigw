@@ -140,12 +140,13 @@ integration-test:
 # The host of metadata center service, it could be a domain or an IP.
 # Please follow aigw-project/metadata-center to start it.
 # Use the local IP as the metadata center host for developping.
-MC_HOST := $(shell ifconfig -a | awk '/inet / && $$2!="127.0.0.1" {print $$2}' | head -n 1)
+MC_HOST := $(shell ifconfig -a | awk '/inet / {print $$2}' | grep -v '127.' | grep -v '192.' | head -n 1)
 MC_PORT := 8080
 LOG_LEVEL := info
 
 .PHONY: run
 run:
+	@echo "using ${MC_HOST} as Metadata Center Host"
 	docker run --name dev_aigw --rm -d \
 		-e AIGW_META_DATA_CENTER_HOST=${MC_HOST} \
 		-e AIGW_META_DATA_CENTER_PORT=${MC_PORT} \
