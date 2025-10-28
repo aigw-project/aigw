@@ -137,8 +137,7 @@ func (t *openAiChatCompletionTranscoder) GetRequestData(headers api.RequestHeade
 func (t *openAiChatCompletionTranscoder) EncodeRequest(modelName, backendProtocol string, headers api.RequestHeaderMap,
 	buffer api.BufferInstance) (*transcoder.RequestContext, error) {
 
-	// TODO: get stream field from openAiChatMessage
-	isStream := false
+	isStream := t.openAiChatMessage.Stream
 	t.isStream = isStream
 	reqCtx := &transcoder.RequestContext{
 		IsStream: isStream,
@@ -399,7 +398,6 @@ func (t *openAiChatCompletionTranscoder) GetLLMLogItems() *log.LLMLogItems {
 	return &t.logItems
 }
 
-// mapToFixedHashSpace 将任意长度的编码映射到固定长度字节
 func mapToFixedHashSpace(input []byte, vlType string) string {
 	hashLength := DefaultHashSpaceLength
 	length, ok := VlType2HashSpaceLength[vlType]

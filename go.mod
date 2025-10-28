@@ -57,3 +57,5 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20241113202542-65e8d215514f // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/openai/openai-go => github.com/aigw-project/openai-go v0.0.0-20251028101457-5b6f4dd876f5
