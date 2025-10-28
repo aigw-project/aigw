@@ -4,6 +4,10 @@ The Intelligent Inference Scheduler for Large-scale Inference Services.
 
 English | [中文](README_ZH.md)
 
+## Status
+
+Early & quick developing
+
 ## About
 
 AIGW is an intelligent inference scheduler for large-scale inference services. It provides intelligent routing, overload protection, and multi-tenant QoS capabilities through a global routing solution that is aware of load, KVCache, and Lora. This helps achieve higher throughput, lower latency, and efficient use of resources.
