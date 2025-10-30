@@ -25,7 +25,7 @@ AIGW 是大模型推理服务的 智能枢纽（推理网关），通过负载�
 
 ## 开发者指南
 
-[Developer Guide](docs/zh/developer_guide.md)
+[Developer Guide](docs/zh/developer-guide.md)
 
 ## 社区
 
