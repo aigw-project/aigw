@@ -56,7 +56,7 @@ func (f *filter) AddRequest() {
 		ttft := metrics_stats.MatchTTFT(f.modelName, f.promptLength)
 		ms := time.Duration(ttft*12/10) * time.Millisecond
 
-		api.LogInfof("non-stream request, start prompt decrease timer, model name: %s, trace id=%s, predict ttft=%dms", f.modelName, f.traceId, ttft)
+		api.LogDebugf("non-stream request, start prompt decrease timer, model name: %s, trace id=%s, predict ttft=%dms", f.modelName, f.traceId, ttft)
 		f.promptDecreaseTimer = time.AfterFunc(ms, func() {
 			f.DeletePromptLength()
 		})
@@ -110,18 +110,31 @@ func (f *filter) DeletePromptLength() {
 	err := f.config.MC.DeleteRequestPrompt(ctx, f.UniqueId())
 	if err != nil {
 		api.LogErrorf("decrease prompt length failed, traceid: %s, err: %v", f.traceId, err)
+		return
 	}
 	f.isPromptLengthDeleted = true
 	api.LogDebugf("decrease prompt length, model name: %s, backend: %s, ip: %s, prompt length: %d, trace id: %s", f.modelName, f.backendProtocol, f.serverIp, f.promptLength, f.traceId)
 }
 
 func (f *filter) SaveKVCache(header api.ResponseHeaderMap) {
-	// TODO
+	if !f.isModelCacheAwareEnable() {
+		api.LogDebugf("model cache aware is not enable, model name: %s", f.modelName)
+		return
+	}
+
+	ctx := context.WithValue(context.Background(), mctypes.CtxKeyTraceID, f.traceId)
+	err := f.config.MC.SaveKVCache(ctx, f.cluster, f.serverIp, f.promptHash)
+	if err != nil {
+		api.LogErrorf("save prefix kvcache index failed, err: %v", err)
+		return
+	}
+	api.LogDebugf("save prefix kvcache index success, model name: %s, cluster: %s, backend: %s, ip: %s", f.modelName, f.cluster, f.backendProtocol, f.serverIp)
 }
 
 func (f *filter) setPromptsContext(ctx context.Context) context.Context {
 	if f.isModelCacheAwareEnable() {
 		ctx = context.WithValue(ctx, inferencelb.KeyPromptHash, f.promptHash)
+		api.LogInfof("prompt hash set to context, model name: %s, prompt hash: %v", f.modelName, f.promptHash)
 		return ctx
 	}
 	return ctx
@@ -156,7 +169,7 @@ func (f *filter) isModelLoadAwareEnable() bool {
 
 func (f *filter) isModelCacheAwareEnable() bool {
 	if f.config.LbMappingConfigs == nil {
-		return false
+		return true
 	}
 	if lbConfig := f.config.FindLbMappingRule(f.modelName); lbConfig != nil {
 		return lbConfig.CacheAwareEnable

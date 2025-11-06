@@ -462,7 +462,7 @@ func (t *openAiChatCompletionTranscoder) formalizeMessages() []openaigo.ChatComp
 		for idx := range contentParts {
 			part := contentParts[idx]
 
-			// TODO
+			// TODO: handle each message type
 			newPart := part
 
 			newContentParts[idx] = newPart

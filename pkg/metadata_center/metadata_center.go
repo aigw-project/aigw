@@ -475,11 +475,12 @@ func (mc *MetaDataCenter) QueryKVCache(ctx context.Context, cluster string, prom
 		return nil, fmt.Errorf("cache request: parse cache response error: %s", err.Error())
 	}
 	if len(response.Data.Locations) == 0 {
-		return nil, fmt.Errorf("cache request: cache response data is empty")
+		// no prefix cache matched
+		return nil, nil
 	}
 	cacheResponse := response.Data
 
-	stats := make([]*types.KVCacheLocation, len(response.Data.Locations))
+	stats := make([]*types.KVCacheLocation, 0, len(response.Data.Locations))
 	for _, item := range cacheResponse.Locations {
 		stat := &types.KVCacheLocation{
 			Ip:     item.Ip,

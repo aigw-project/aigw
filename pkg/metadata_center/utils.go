@@ -38,8 +38,8 @@ var (
 
 	metaDataCenterHost string
 
-	// metaDataCenterCacheEnable default value: false
-	metaDataCenterCacheEnable = false
+	// metaDataCenterCacheEnable default value: true
+	metaDataCenterCacheEnable = true
 )
 
 func hashKey(s string) uint32 {
