@@ -18,3 +18,5 @@ controller/**/cache
 controller/**/log
 /istio
 .idea/*
+
+*.DS_Store

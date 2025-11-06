@@ -1,16 +1,29 @@
-## AIGW
+<h1 align="center">
+    <img src="docs/images/aigw-logo.png" alt="AIGW" width="275" height="75">
+    <br>
+    大模型推理服务的智能枢纽（推理网关）
+</h1>
 
-大模型推理服务的智能枢纽（推理网关）
+<div align="center">
+    <a href="https://github.com/aigw-project/aigw/actions/workflows/test.yml">
+        <img src="https://github.com/aigw-project/aigw/actions/workflows/test.yml/badge.svg">
+    </a>
+    <a href="https://goreportcard.com/report/github.com/aigw-project/aigw">
+        <img src="https://goreportcard.com/badge/github.com/aigw-project/aigw">
+    </a>
+</div>
 
-[English](README.md) | 中文
-
-## 状态
-
-快速迭代中
+<div align="center">
+    <a href="README.md">English</a> | 中文
+</div>
 
 ## 关于
 
 AIGW 是大模型推理服务的 智能枢纽（推理网关），通过负载感知、KVCache 感知、Lora 感知 的全局路由方案，提供智能路由，过载保护，多租 QoS 等能力，降低时延，提升集群服务能力。
+
+## 状态
+
+快速迭代中
 
 ## 架构
 
