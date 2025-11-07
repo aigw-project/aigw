@@ -1,0 +1,16 @@
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: qwen3
+  namespace: aigw
+spec:
+  endpoints:
+  - address: 127.0.0.1
+  - address: 127.0.0.2
+  hosts:
+  - qwen3
+  ports:
+  - name: port-10001
+    number: 10001
+    protocol: HTTP
+  resolution: STATIC

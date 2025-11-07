@@ -17,13 +17,14 @@ SHELL = /bin/bash
 TARGET_SO       = libgolang.so
 PROJECT_NAME    = github.com/aigw-project/aigw
 DOCKER_MIRROR   = m.daocloud.io/
+
 # Both images use glibc 2.31. Ensure libc in the images match each other.
 BUILD_IMAGE     ?= $(DOCKER_MIRROR)docker.io/library/golang:1.22-bullseye
-# This is the m.daocloud.io/docker.io/envoyproxy/envoy:contrib-dev image pull in 2025-04-11.
-# Use docker inspect --format='{{index .RepoDigests 0}}' m.daocloud.io/docker.io/envoyproxy/envoy:contrib-dev to get the sha256 ID.
-# We don't use the envoy:contrib-dev tag directly because it will be rewritten by the latest commit repeatedly and
-# our integration test suite pulls the image only if it's not present.
-PROXY_IMAGE     ?= $(DOCKER_MIRROR)docker.io/envoyproxy/envoy:contrib-v1.35.6
+
+# Using istio/proxyv2 since we using Istio as control plane.
+# For local mode, envoyproxy/envoy:contrib-v1.35.6 is ok too.
+PROXY_IMAGE     ?= $(DOCKER_MIRROR)docker.io/istio/proxyv2:1.27.3
+
 DEV_TOOLS_IMAGE ?= reg.docker.alibaba-inc.com/tnn/htnn-dev-tools:20250124135210
 EXTRA_GO_BUILD_TAGS ?=
 # use for version update
@@ -144,24 +145,44 @@ MC_HOST := $(shell ifconfig -a | awk '/inet / {print $$2}' | grep -v '127.' | gr
 MC_PORT := 8080
 LOG_LEVEL := info
 
-.PHONY: run
-run:
+ISTIO_HOST := $(shell ifconfig -a | awk '/inet / {print $$2}' | grep -v '127.' | grep -v '192.' | head -n 1)
+
+.PHONY: start-aigw-xds
+start-aigw-xds:
+	cat etc/envoy-istio.yaml \
+		| sed "s/ISTIO_ENDPOINT/${ISTIO_HOST}/" \
+		> etc/envoy-xds.yaml
 	@echo "using ${MC_HOST} as Metadata Center Host"
-	docker run --name dev_aigw --rm -d \
+	docker run --entrypoint /bin/bash --name dev_aigw --rm -d \
 		-e AIGW_META_DATA_CENTER_HOST=${MC_HOST} \
 		-e AIGW_META_DATA_CENTER_PORT=${MC_PORT} \
-		-v $(PWD)/etc/demo.yaml:/etc/demo.yaml \
+		-v $(PWD)/etc/envoy-xds.yaml:/etc/envoy.yaml \
 		-v $(PWD)/etc/clusters.json:/etc/aigw/static_clusters.json \
 		-v $(PWD)/libgolang.so:/usr/local/envoy/libgolang.so \
 		-p 10000:10000 \
-		-p 15000:15000 \
 		-p 10001:10001 \
+		-p 15000:15000 \
 		${PROXY_IMAGE} \
-		envoy -c /etc/demo.yaml \
-		--log-level ${LOG_LEVEL}
+		-c "envoy -c /etc/envoy.yaml --log-level ${LOG_LEVEL}"
 
-.PHONY: stop
-stop:
+# start data plane by using pure local configuration
+.PHONY: start-aigw-local
+start-aigw-local:
+	@echo "using ${MC_HOST} as Metadata Center Host"
+	docker run --entrypoint /bin/bash --name dev_aigw --rm -d \
+		-e AIGW_META_DATA_CENTER_HOST=${MC_HOST} \
+		-e AIGW_META_DATA_CENTER_PORT=${MC_PORT} \
+		-v $(PWD)/etc/envoy-local.yaml:/etc/envoy.yaml \
+		-v $(PWD)/etc/clusters.json:/etc/aigw/static_clusters.json \
+		-v $(PWD)/libgolang.so:/usr/local/envoy/libgolang.so \
+		-p 10000:10000 \
+		-p 10001:10001 \
+		-p 15000:15000 \
+		${PROXY_IMAGE} \
+		-c "envoy -c /etc/envoy.yaml --log-level ${LOG_LEVEL}"
+
+.PHONY: stop-aigw
+stop-aigw:
 	docker stop dev_aigw
 
 .PHONY: build-image
@@ -169,3 +190,28 @@ build-image:
 	docker build -t aigw -f Dockerfile . \
 		--build-arg BASE_IMAGE=${PROXY_IMAGE} \
 		--build-arg BUILD_IMAGE=${BUILD_IMAGE}
+
+LOG_LEVEL = info
+PILOT_IMAGE = $(DOCKER_MIRROR)docker.io/istio/pilot:1.27.3
+PILOT_CMD = pilot-discovery discovery \
+			--log_output_level $(LOG_LEVEL) \
+			--meshConfig /etc/istio.yaml \
+			--configDir /etc/config_crds \
+			--httpsAddr= --registries=
+
+.PHONY: start-istio
+start-istio:
+	docker run --name dev_istio \
+		--entrypoint bash --rm -it -d \
+		-e INJECT_ENABLED=false \
+		-e ENABLE_CA_SERVER=false \
+		-v $(PWD)/etc/istio.yaml:/etc/istio.yaml \
+		-v $(PWD)/etc/config_crds:/etc/config_crds \
+		-p 15010:15010 \
+		-p 8080:8080\
+		${PILOT_IMAGE} \
+		-c "${PILOT_CMD}"
+
+.PHONY: stop-istio
+stop-istio:
+	docker stop dev_istio

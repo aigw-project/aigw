@@ -1,0 +1,38 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: api-golang-config
+  namespace: istio-system
+spec:
+  configPatches:
+    - applyTo: HTTP_ROUTE
+      match:
+        context: GATEWAY
+        routeConfiguration:
+          vhost:
+            route:
+              name: "llm-apis"
+      patch:
+        operation: MERGE
+        value:
+          typed_per_filter_config:
+            envoy.filters.http.golang:
+              "@type": type.googleapis.com/udpa.type.v1.TypedStruct
+              type_url: type.googleapis.com/envoy.extensions.filters.http.golang.v3alpha.ConfigsPerRoute
+              value:
+                plugins_config:
+                  fm:
+                    config:
+                      "@type": type.googleapis.com/xds.type.v3.TypedStruct
+                      value:
+                        plugins:
+                          - name: llmproxy
+                            config:
+                              protocol: openai
+                              algorithm: inference_lb
+                              model_mapping_rule:
+                                qwen3:
+                                  rules:
+                                    - backend: sglang
+                                      cluster: "outbound|10001||qwen3"
+
