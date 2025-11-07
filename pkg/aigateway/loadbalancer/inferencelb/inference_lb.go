@@ -259,7 +259,7 @@ var (
 		for i, host := range hosts {
 			stat, ok := epStats[host.Ip()]
 			if !ok {
-				api.LogWarnf("endpoint stats not found for %s, clusterName %s", host.Ip(), clusterName)
+				api.LogDebugf("endpoint stats not found for %s, clusterName %s", host.Ip(), clusterName)
 				epStatsWrapper[i] = &EndpointStatsWrapper{
 					Host: host,
 

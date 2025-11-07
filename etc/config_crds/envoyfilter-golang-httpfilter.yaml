@@ -1,0 +1,26 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: llm-proxy
+  namespace: istio-system
+spec:
+  configPatches:
+    # The patch adds the golang filter to the listener/http connection manager
+  - applyTo: HTTP_FILTER
+    match:
+      context: GATEWAY
+      listener:
+        filterChain:
+          filter:
+            name: "envoy.filters.network.http_connection_manager"
+            subFilter:
+              name: "envoy.filters.http.router"
+    patch:
+      operation: INSERT_BEFORE
+      value: # golang filter specification
+       name: envoy.filters.http.golang
+       typed_config:
+          "@type": "type.googleapis.com/envoy.extensions.filters.http.golang.v3alpha.Config"
+          library_id: fm
+          library_path: /usr/local/envoy/libgolang.so
+          plugin_name: fm

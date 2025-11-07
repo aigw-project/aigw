@@ -20,3 +20,6 @@ controller/**/log
 .idea/*
 
 *.DS_Store
+
+# generated files
+etc/envoy-xds.yaml

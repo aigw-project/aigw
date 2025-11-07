@@ -1,0 +1,19 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: cluster-header
+  namespace: istio-system
+spec:
+  configPatches:
+  - applyTo: HTTP_ROUTE
+    match:
+      context: GATEWAY
+      routeConfiguration:
+        vhost:
+          route:
+            name: "llm-apis"
+    patch:
+      operation: MERGE
+      value:
+        route:
+          cluster_header: "Cluster-Name"

@@ -1,0 +1,13 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: demo-aigw
+  namespace: aigw
+spec:
+  servers:
+  - port:
+      number: 10000
+      name: http
+      protocol: HTTP
+    hosts:
+    - "*"
