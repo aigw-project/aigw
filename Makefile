@@ -147,6 +147,11 @@ LOG_LEVEL := info
 
 ISTIO_HOST := $(shell ifconfig -a | awk '/inet / {print $$2}' | grep -v '127.' | grep -v '192.' | head -n 1)
 
+WITH_KIND ?= OFF
+ifeq ($(WITH_KIND),ON)
+  NET_FLAGS := --network kind
+endif
+
 .PHONY: start-aigw-xds
 start-aigw-xds:
 	cat etc/envoy-istio.yaml \
@@ -154,6 +159,7 @@ start-aigw-xds:
 		> etc/envoy-xds.yaml
 	@echo "using ${MC_HOST} as Metadata Center Host"
 	docker run --entrypoint /bin/bash --name dev_aigw --rm -d \
+		$(NET_FLAGS) \
 		-e AIGW_META_DATA_CENTER_HOST=${MC_HOST} \
 		-e AIGW_META_DATA_CENTER_PORT=${MC_PORT} \
 		-v $(PWD)/etc/envoy-xds.yaml:/etc/envoy.yaml \
@@ -193,20 +199,33 @@ build-image:
 
 LOG_LEVEL = info
 PILOT_IMAGE = $(DOCKER_MIRROR)docker.io/istio/pilot:1.27.3
-PILOT_CMD = pilot-discovery discovery \
-			--log_output_level $(LOG_LEVEL) \
-			--meshConfig /etc/istio.yaml \
-			--configDir /etc/config_crds \
-			--httpsAddr= --registries=
+PILOT_BASE := pilot-discovery discovery \
+              --log_output_level $(LOG_LEVEL) \
+              --meshConfig /etc/istio.yaml \
+              --configDir /etc/config_crds \
+			  --httpsAddr= 
+
+ifeq ($(WITH_KIND),ON)
+  PILOT_REGISTRY := --registries Kubernetes --kubeconfig /etc/kubeconfig.yaml
+  MAPPED_KIND_CONFIG := -v "$(PWD)/etc/kind-kubeconfig.yaml:/etc/kubeconfig.yaml"
+else
+  PILOT_REGISTRY := --registries= 
+endif
+
+PILOT_CMD := $(PILOT_BASE) $(PILOT_REGISTRY)
 
 .PHONY: start-istio
 start-istio:
 	docker run --name dev_istio \
 		--entrypoint bash --rm -it -d \
+		$(NET_FLAGS) \
+		--privileged=true \
+		--user root \
 		-e INJECT_ENABLED=false \
 		-e ENABLE_CA_SERVER=false \
 		-v $(PWD)/etc/istio.yaml:/etc/istio.yaml \
 		-v $(PWD)/etc/config_crds:/etc/config_crds \
+		$(MAPPED_KIND_CONFIG) \
 		-p 15010:15010 \
 		-p 8080:8080\
 		${PILOT_IMAGE} \
@@ -215,3 +234,10 @@ start-istio:
 .PHONY: stop-istio
 stop-istio:
 	docker stop dev_istio
+
+.PHONY: start-mock-service
+start-mock-service:
+	cd $(PWD)/test/service_discovery/
+	docker build -t mock-service:1.0 .
+	kind load docker-image mock-service:1.0 --name istio-test
+	kubectl apply -f mock_service_config.yaml
