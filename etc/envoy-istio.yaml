@@ -1,5 +1,5 @@
 node:
-  id: router~127.0.0.1~TODO_ID~TO_DOMAIN
+  id: router~127.0.0.1~aigw.default~cluster.local
   cluster: cluster
 
 admin:

@@ -25,6 +25,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	managertypes "github.com/aigw-project/aigw/pkg/aigateway/clustermanager/types"
 	"github.com/aigw-project/aigw/pkg/aigateway/discovery/common"
 )
 
@@ -100,6 +101,28 @@ func (s *cdsServerImpl) processAllClusters() {
 	s.responseChan <- resp
 }
 
+func (s *cdsServerImpl) processSubscribedClusters(subscribeClusters []string) {
+	clusters := []*managertypes.ClusterInfo{}
+	for _, cname := range subscribeClusters {
+		c, err := s.provider.GetClusterInfo(cname)
+		if c == nil || err != nil {
+			api.LogErrorf("could not find cluster %s, err %v", cname, err)
+			continue
+		}
+		clusters = append(clusters, c)
+	}
+	nonce := common.GenerateNonce()
+	resources := make([]*discovery.Resource, 0, len(clusters))
+	for _, c := range clusters {
+		clustercfg := common.GenerateCluster(c.Name, c.Endpoints, false)
+		res := common.ConvertClusterToResource(clustercfg, c.Name)
+		resources = append(resources, res)
+	}
+
+	resp := common.GenerateDeltaDiscoveryResponseWithRemovedResources(resource.ClusterType, nonce, resources, nil)
+	s.responseChan <- resp
+}
+
 func (s *cdsServerImpl) DeltaClusters(stream cluster.ClusterDiscoveryService_DeltaClustersServer) error {
 	api.LogInfof("new delta clusters stream: %v", stream)
 
@@ -141,9 +164,12 @@ func (s *cdsServerImpl) DeltaClusters(stream cluster.ClusterDiscoveryService_Del
 			}
 
 			// TODO: delta watching cluster
+			subscribedClusters := []string{}
 			for _, r := range req.ResourceNamesSubscribe {
+				subscribedClusters = append(subscribedClusters, r)
 				api.LogInfof("delta watching cluster: %s", r)
 			}
+			s.processSubscribedClusters(subscribedClusters)
 		}
 	}
 }

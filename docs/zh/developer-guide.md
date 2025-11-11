@@ -1,23 +1,23 @@
-## 开发者指南
+# 开发者指南
 
-## 运行方式
+## 1. 运行方式
 
 AIGW 支持多种运行方式：
 1. 本地独立运行，使用静态配置文件的方式进行服务发现，适合本地开发和调试
 2. 集成 Istio 作为控制面，使用 Istio 提供的服务发现能力，适合生产环境
 
-## 环境准备
+## 2. 环境准备
 
 1. docker
 2. golang 1.22+
 
-## 启动 Metadata Center
+## 3. 启动 Metadata Center
 
 两种方式都需要启动 Metadata Center 服务，因为 AIGW 依赖 Metadata Center 组件来实现准实时的负载指标统计，
 请参考 [Metadata Center 文档](https://github.com/aigw-project/metadata-center/blob/main/docs/zh/developer_guide.md) 启动本地的 Metadata Center 服务。
 Metadata Center 默认监听本地 IP 和 `8080` 端口。
 
-## 编译
+## 4. 编译
 
 将 AIGW 编译为 shared object：
 
@@ -25,15 +25,15 @@ Metadata Center 默认监听本地 IP 和 `8080` 端口。
 make build-so
 ```
 
-## 本地独立运行方式
+## 5. 本地独立运行方式
 
 为了本地开发方便，AIGW 支持本地独立运行方式，使用静态配置的方式进行服务发现，也即通过配置文件指定服务实例的地址和端口。
 
-### 静态配置服务发现
+### 5.1 静态配置服务发现
 
 示例可以查看：[etc/clusters.json](../../etc/clusters.json)，该文件定义了 `127.0.0.1:10001` 作为 `qwen3.service` 这个服务的实例。
 
-### 启动服务
+#### 启动服务
 
 将使用 [etc/envoy-local.yaml](../../etc/envoy-local.yaml) 作为 Envoy 的配置文件，并使用 [etc/clusters.json](../../etc/clusters.json) 作为静态服务发现的配置文件启动 AIGW：
 
@@ -41,13 +41,13 @@ make build-so
 make start-aigw-local
 ```
 
-## 集成 Istio 运行方式
+### 5.2 集成 Istio 运行方式
 
 Comming soon.
 
 集成 Istio 作为控制面，使用 Istio 的服务发现能力，可以与 k8s 集群自动同步服务实例信息，适合生产环境。
 
-### 启动 Istio
+#### 启动 Istio
 
 为了方便调试，我们启动一个本地的 Istio 控制面，并且监听 `etc/config_crds` 目录下的 CRD 文件。
 
@@ -55,11 +55,11 @@ Comming soon.
 make start-istio
 ```
 
-### 服务发现
+#### 服务发现
 
 我们使用 ServiceEntry 资源来定义服务实例，如 [etc/config_crds/service-entry.yaml](etc/config_crds/service-entry.yaml) 文件所示。
 
-### 启动服务
+#### 启动服务
 
 将使用 [etc/envoy-istio.yaml](../../etc/envoy-istio.yaml) 作为 Envoy 的配置文件，并订阅本地 Istio 作为控制面来启动 AIGW：
 
@@ -67,7 +67,36 @@ make start-istio
 make start-aigw-xds
 ```
 
-## 服务启动检查
+### 5.3 集成 Istio & k8s 运行方式
+
+#### 配置k8s集群环境
+参考[k8s + Istio 环境搭建指南](../../docs/zh/service_discovery_guide/setup_env_zh.md)使用Kind部署k8s集群并启动Istio；
+
+#### 启动 Istio & 订阅 k8s Service API
+导出Kind集群配置到./etc目录，供Istio订阅：
+```bash
+kind get kubeconfig --name istio-test > ./etc/kind-kubeconfig.yaml
+```
+
+启动Istio：
+```bash
+make WITH_KIND=ON start-istio
+```
+
+#### 启动 Mock Service
+启动Mock Service，作为upstream服务组件被AIGW发现：
+```bash
+make start-mock-service
+```
+
+#### 启动服务
+启动AIGW，拉起自定义xDS服务器，从Istio Pilot订阅CDS/EDS信息，并启动gRPC Server供Envoy拉取。
+服务信息传递流程：Istio Pilot => AIGW 自定义xDS服务器 => Envoy。
+```bash
+make WITH_KIND=ON start-aigw-xds
+```
+
+## 6. 服务启动检查
 
 两种启动方式，都将监听两个端口：
 1. `10000` 端口：AIGW 服务
@@ -75,7 +104,7 @@ make start-aigw-xds
 
 并将默认使用本地启动的 Metadata Center 进行负载指标统计，默认使用本地 IP 和 `8080` 端口。
 
-## 测试
+## 7. 测试
 
 使用 curl 发送请求：
 
@@ -95,7 +124,7 @@ curl 'localhost:10000/v1/chat/completions' \
     }'
 ```
 
-## 停止服务
+## 8. 停止服务
 
 ```shell
 make stop-aigw
