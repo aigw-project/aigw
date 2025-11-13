@@ -17,6 +17,8 @@ package staticdemo
 import (
 	"context"
 	"fmt"
+	"math/rand"
+	"time"
 
 	"github.com/envoyproxy/envoy/contrib/golang/common/go/api"
 	cluster "github.com/envoyproxy/go-control-plane/envoy/service/cluster/v3"
@@ -25,6 +27,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/aigw-project/aigw/pkg/aigateway/clustermanager/types"
 	"github.com/aigw-project/aigw/pkg/aigateway/discovery/common"
 )
 
@@ -98,6 +101,29 @@ func (s *cdsServerImpl) processAllClusters() {
 
 	resp := common.GenerateDeltaDiscoveryResponseWithRemovedResources(resource.ClusterType, nonce, resources, nil)
 	s.responseChan <- resp
+
+	go func() {
+		for {
+			time.Sleep(time.Second)
+
+			tmpResources := make([]*discovery.Resource, 0, len(clusters))
+			for _, c := range clusters {
+				tmpEndpoints := make([]types.Endpoint, 0, 1)
+				// randomly pick an endpoint
+				idx := rand.Intn(len(c.Endpoints))
+				tmpEndpoints = append(tmpEndpoints, c.Endpoints[idx])
+
+				clustercfg := common.GenerateCluster(c.Name, tmpEndpoints, false)
+				res := common.ConvertClusterToResource(clustercfg, c.Name)
+				tmpResources = append(tmpResources, res)
+			}
+
+			tmpResp := common.GenerateDeltaDiscoveryResponseWithRemovedResources(resource.ClusterType, common.GenerateNonce(), tmpResources, nil)
+			s.responseChan <- tmpResp
+
+			api.LogInfof("sending delta response")
+		}
+	}()
 }
 
 func (s *cdsServerImpl) DeltaClusters(stream cluster.ClusterDiscoveryService_DeltaClustersServer) error {
