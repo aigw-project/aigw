@@ -33,9 +33,5 @@ func ChooseServer(ctx context.Context, callbacks api.FilterCallbackHandler, head
 	header.Set("Cluster-Name", cluster)
 	callbacks.RefreshRouteCache()
 
-	if err = callbacks.DecoderFilterCallbacks().SetUpstreamOverrideHost(host.Address(), false); err != nil {
-		return nil, err
-	}
-
 	return host, nil
 }

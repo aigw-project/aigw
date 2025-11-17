@@ -179,7 +179,7 @@ start-aigw-local:
 		-p 10001:10001 \
 		-p 15000:15000 \
 		${PROXY_IMAGE} \
-		-c "envoy -c /etc/envoy.yaml --log-level ${LOG_LEVEL}"
+		-c "envoy --concurrency 1 -c /etc/envoy.yaml --log-level ${LOG_LEVEL}"
 
 .PHONY: stop-aigw
 stop-aigw:

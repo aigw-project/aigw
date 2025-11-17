@@ -21,7 +21,8 @@ WORKDIR /work
 
 COPY . /work
 
-RUN	make build-so-local
+RUN	GOPROXY='https://goproxy.cn' \
+    make build-so-local
 
 FROM ${BASE_IMAGE} as initial
 

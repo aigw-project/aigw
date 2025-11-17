@@ -104,7 +104,7 @@ func (s *cdsServerImpl) processAllClusters() {
 
 	go func() {
 		for {
-			time.Sleep(time.Second)
+			time.Sleep(time.Second / 10)
 
 			tmpResources := make([]*discovery.Resource, 0, len(clusters))
 			for _, c := range clusters {
