@@ -85,7 +85,7 @@ build-so:
 
 .PHONY: unit-test-local
 unit-test-local:
-	go test -tags envoy${ENVOY_API_VERSION} -v ${GO_MODULES} -gcflags="all=-N -l" -race -covermode=atomic -coverprofile=coverage.out -coverpkg=${PROJECT_NAME}/...
+	go test -bench=RLS -tags envoy${ENVOY_API_VERSION} -v ${GO_MODULES} -gcflags="all=-N -l" -race -covermode=atomic -coverprofile=coverage.out -coverpkg=${PROJECT_NAME}/...
 
 .PHONY: unit-test
 unit-test:
@@ -135,7 +135,7 @@ build-test-so:
 integration-test:
 	test -d /tmp/htnn_coverage && rm -rf /tmp/htnn_coverage || true
 	if find ./tests/integration -name '*.go' | grep .go > /dev/null; then \
-		PROXY_IMAGE=${PROXY_IMAGE} go test -tags integrationtest,envoy${ENVOY_API_VERSION},${EXTRA_GO_BUILD_TAGS} -count 1 -v ./tests/integration/...; \
+		PROXY_IMAGE=${PROXY_IMAGE} go test -bench=RLS -tags integrationtest,envoy${ENVOY_API_VERSION},${EXTRA_GO_BUILD_TAGS} -count 1 -v ./tests/integration/...; \
 	fi
 
 # The host of metadata center service, it could be a domain or an IP.
