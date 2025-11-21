@@ -33,6 +33,6 @@ RUN apt update \
 FROM initial as final
 
 COPY --from=builder /work/libgolang.so /usr/local/envoy/libgolang.so
-COPY --from=builder /work/etc/demo.yaml /etc/demo.yaml
+COPY --from=builder /work/etc/envoy-local.yaml /etc/demo.yaml
 
 CMD ["envoy" ,"-c", "/etc/demo.yaml"]
