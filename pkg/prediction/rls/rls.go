@@ -42,6 +42,7 @@ func NewTpotRLS(forget float64) *TpotRecursiveLeastSquares {
 	}
 }
 
+// Update update RLS parameters
 func (r *TpotRecursiveLeastSquares) Update(x []uint64, y float64) {
 	if len(x) != TPOT_COEFF_NUM {
 		return
@@ -105,16 +106,12 @@ func (r *TpotRecursiveLeastSquares) Update(x []uint64, y float64) {
 	r.P[2][2] = (P22 - K2*PHI2) * finv
 }
 
-// Predict
+// Predict calculates the predicted value with RLS params and input x
 func (r *TpotRecursiveLeastSquares) Predict(x []uint64) float64 {
 	if len(x) != TPOT_COEFF_NUM {
 		return -1
 	}
-	size := TPOT_COEFF_NUM + 1
-	phi := make([]uint64, size)
-	copy(phi, x)
-	phi[size-1] = 1
-	y := float64(phi[0])*r.theta[0] + float64(phi[1])*r.theta[1] + float64(phi[2])*r.theta[2]
+	y := float64(x[0])*r.theta[0] + float64(x[1])*r.theta[1] + 1.0*r.theta[2]
 	return y
 }
 
@@ -125,6 +122,7 @@ func (r *TpotRecursiveLeastSquares) Params() []float64 {
 	return out
 }
 
+// Clone create and return a new RLS with same parameters
 func (r *TpotRecursiveLeastSquares) Clone() *TpotRecursiveLeastSquares {
 	size := TPOT_COEFF_NUM + 1
 	newRLS := &TpotRecursiveLeastSquares{

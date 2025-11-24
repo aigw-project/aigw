@@ -37,7 +37,7 @@ type TpotPredictor struct {
 	rls    []*rls.TpotRecursiveLeastSquares
 }
 
-// Init
+// Init init thresh for TpotPredictor and create RLS model for each thresh
 func (c *TpotPredictor) Init(thresh []uint64) {
 	c.thresh = make([]uint64, len(thresh))
 	copy(c.thresh, thresh)
@@ -49,7 +49,7 @@ func (c *TpotPredictor) Init(thresh []uint64) {
 	}
 }
 
-// Params
+// Params return the parameters of all RLS
 func (c *TpotPredictor) Params() map[int]map[string]float64 {
 	m := make(map[int]map[string]float64)
 	for i, r := range c.rls {
@@ -59,6 +59,7 @@ func (c *TpotPredictor) Params() map[int]map[string]float64 {
 	return m
 }
 
+// Clone create and return a new TpotPredictor with same parameters
 func (c *TpotPredictor) Clone() TpotPrediction {
 	newPred := &TpotPredictor{
 		thresh: make([]uint64, len(c.thresh)),
@@ -78,13 +79,13 @@ func (c *TpotPredictor) segment(batchsize uint64) int {
 	return idx
 }
 
-// Train
+// Train update the parameters of TpotPredictor with batchsize, totalTokenNum and ground truth TPOT
 func (c *TpotPredictor) Train(batchsize, totalTokenNum uint64, y float64) {
 	seg := c.segment(batchsize)
 	c.rls[seg].Update([]uint64{batchsize, totalTokenNum}, y)
 }
 
-// Predict
+// Predict calculate the predicted TPOT with batchsize and totalTokenNum
 func (c *TpotPredictor) Predict(batchsize, totalTokenNum uint64) float64 {
 	seg := c.segment(batchsize)
 	return c.rls[seg].Predict([]uint64{batchsize, totalTokenNum})
