@@ -66,36 +66,6 @@ Both methods can start AIGW integrated with Istio:
 make start-aigw-xds
 ```
 
-### 5.3 Integration with Istio & Kubernetes
-
-#### Prepare the Kubernetes cluster
-Follow the [Kubernetes + Istio Setup Guidance](../../docs/zh/service_discovery_guide/setup_env_zh.md) to deploy a Kubernetes cluster with Kind and start Istio.
-
-#### Start Istio & subscribe to the Kubernetes Service API
-Export the Kind cluster kubeconfig to the `./etc` directory so Istio can subscribe to it:
-
-```bash
-kind get kubeconfig --name istio-test > ./etc/kind-kubeconfig.yaml
-```
-
-Start Istio:
-```bash
-make WITH_KIND=ON start-istio
-```
-
-#### Start the Mock Service
-Launch the Mock Service as an upstream component that will be discovered by AIGW:
-```bash
-make start-mock-service
-```
-
-#### Start the AIGW Service
-Start AIGW, which brings up a custom xDS server, subscribes CDS/EDS from Istio Pilot, and starts a gRPC server for Envoy to fetch configuration.
-Data flow: Istio Pilot => AIGW custom xDS server => Envoy.
-```bash
-make WITH_KIND=ON start-aigw-xds
-```
-
 ## 6. After Starting
 
 Both two ways will start two services:

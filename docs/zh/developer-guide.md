@@ -67,35 +67,6 @@ make start-istio
 make start-aigw-xds
 ```
 
-### 5.3 集成 Istio & k8s 运行方式
-
-#### 配置k8s集群环境
-参考[k8s + Istio 环境搭建指南](../../docs/zh/service_discovery_guide/setup_env_zh.md)使用Kind部署k8s集群并启动Istio；
-
-#### 启动 Istio & 订阅 k8s Service API
-导出Kind集群配置到./etc目录，供Istio订阅：
-```bash
-kind get kubeconfig --name istio-test > ./etc/kind-kubeconfig.yaml
-```
-
-启动Istio：
-```bash
-make WITH_KIND=ON start-istio
-```
-
-#### 启动 Mock Service
-启动Mock Service，作为upstream服务组件被AIGW发现：
-```bash
-make start-mock-service
-```
-
-#### 启动服务
-启动AIGW，拉起自定义xDS服务器，从Istio Pilot订阅CDS/EDS信息，并启动gRPC Server供Envoy拉取。
-服务信息传递流程：Istio Pilot => AIGW 自定义xDS服务器 => Envoy。
-```bash
-make WITH_KIND=ON start-aigw-xds
-```
-
 ## 6. 服务启动检查
 
 两种启动方式，都将监听两个端口：
