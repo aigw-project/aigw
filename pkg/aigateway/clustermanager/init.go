@@ -17,12 +17,21 @@ package clustermanager
 import (
 	"github.com/envoyproxy/envoy/contrib/golang/common/go/api"
 
-	"github.com/aigw-project/aigw/pkg/aigateway/discovery/staticdemo"
+	managertypes "github.com/aigw-project/aigw/pkg/aigateway/clustermanager/types"
+	dprovider "github.com/aigw-project/aigw/pkg/aigateway/discovery/dynamic_provider"
+	sprovider "github.com/aigw-project/aigw/pkg/aigateway/discovery/static_provider"
 	"github.com/aigw-project/aigw/pkg/aigateway/loadbalancer"
+	"github.com/aigw-project/aigw/pkg/common"
 )
 
 func init() {
-	clusterProvider := staticdemo.NewStaticClusterProvider()
+	providerType := common.GetStrFromEnv("AIGW_CLUSTER_PROVIDER_TYPE", "static")
+	var clusterProvider managertypes.ClusterInfoProvider
+	if providerType == "static" {
+		clusterProvider = sprovider.NewStaticClusterProvider()
+	} else {
+		clusterProvider = dprovider.NewDynamicClusterProvider()
+	}
 	lb := NewClusterManager(clusterProvider)
 
 	api.LogInfof("registering cluster manager as global load balancer")

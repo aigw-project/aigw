@@ -150,6 +150,9 @@ ISTIO_HOST := $(shell ifconfig -a | awk '/inet / {print $$2}' | grep -v '127.' |
 WITH_KIND ?= OFF
 ifeq ($(WITH_KIND),ON)
   NET_FLAGS := --network kind
+  AIGW_CLUSTER_PROVIDER_TYPE := "dynamic"
+  $(eval ISTIO_CONTAINER_IP := $(shell docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' dev_istio))
+  @echo "using ${ISTIO_CONTAINER_IP} as Istio Pilot Host"
 endif
 
 .PHONY: start-aigw-xds
@@ -158,13 +161,12 @@ start-aigw-xds:
 		| sed "s/ISTIO_ENDPOINT/${ISTIO_HOST}/" \
 		> etc/envoy-xds.yaml
 	@echo "using ${MC_HOST} as Metadata Center Host"
-	$(eval ISTIO_CONTAINER_IP := $(shell docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' dev_istio))
-	@echo "using ${ISTIO_CONTAINER_IP} as Istio Pilot Host"
 	docker run --entrypoint /bin/bash --name dev_aigw --rm -d \
 		$(NET_FLAGS) \
 		-e AIGW_META_DATA_CENTER_HOST=${MC_HOST} \
 		-e AIGW_META_DATA_CENTER_PORT=${MC_PORT} \
 		-e AIGW_ISTIO_ADDR="${ISTIO_CONTAINER_IP}:15010" \
+		-e AIGW_CLUSTER_PROVIDER_TYPE=${AIGW_CLUSTER_PROVIDER_TYPE} \
 		-v $(PWD)/etc/envoy-xds.yaml:/etc/envoy.yaml \
 		-v $(PWD)/etc/clusters.json:/etc/aigw/static_clusters.json \
 		-v $(PWD)/libgolang.so:/usr/local/envoy/libgolang.so \

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package staticdemo
+package xdsserver
 
 import (
 	"context"
@@ -30,12 +30,12 @@ import (
 )
 
 type cdsServerImpl struct {
-	provider     *StaticClusterProvider
+	provider     managertypes.ClusterInfoProvider
 	responseChan chan *discovery.DeltaDiscoveryResponse
 	cluster.UnimplementedClusterDiscoveryServiceServer
 }
 
-func NewCDSServer(provider *StaticClusterProvider) cluster.ClusterDiscoveryServiceServer {
+func NewCDSServer(provider managertypes.ClusterInfoProvider) cluster.ClusterDiscoveryServiceServer {
 	return &cdsServerImpl{
 		provider:     provider,
 		responseChan: make(chan *discovery.DeltaDiscoveryResponse, 100),
