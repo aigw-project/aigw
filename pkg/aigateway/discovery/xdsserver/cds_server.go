@@ -24,7 +24,6 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"mosn.io/htnn/api/pkg/filtermanager/api"
 
 	managertypes "github.com/aigw-project/aigw/pkg/aigateway/clustermanager/types"
 	"github.com/aigw-project/aigw/pkg/aigateway/discovery/common"
