@@ -43,8 +43,6 @@ make start-aigw-local
 
 ### 5.2 Integrated with Istio
 
-Comming soon.
-
 Integrating with Istio as the control plane, using Istio's service discovery capabilities, can automatically synchronize service instance information with the k8s cluster, suitable for production environments.
 
 #### Start Istio

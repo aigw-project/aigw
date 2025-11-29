@@ -43,8 +43,6 @@ make start-aigw-local
 
 ### 5.2 集成 Istio 运行方式
 
-Comming soon.
-
 集成 Istio 作为控制面，使用 Istio 的服务发现能力，可以与 k8s 集群自动同步服务实例信息，适合生产环境。
 
 #### 启动 Istio

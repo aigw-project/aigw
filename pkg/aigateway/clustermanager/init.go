@@ -18,8 +18,8 @@ import (
 	"github.com/envoyproxy/envoy/contrib/golang/common/go/api"
 
 	managertypes "github.com/aigw-project/aigw/pkg/aigateway/clustermanager/types"
-	dprovider "github.com/aigw-project/aigw/pkg/aigateway/discovery/dynamic_provider"
-	sprovider "github.com/aigw-project/aigw/pkg/aigateway/discovery/static_provider"
+	"github.com/aigw-project/aigw/pkg/aigateway/discovery/dynamic_provider"
+	"github.com/aigw-project/aigw/pkg/aigateway/discovery/static_provider"
 	"github.com/aigw-project/aigw/pkg/aigateway/loadbalancer"
 	"github.com/aigw-project/aigw/pkg/common"
 )
@@ -28,9 +28,9 @@ func init() {
 	providerType := common.GetStrFromEnv("AIGW_CLUSTER_PROVIDER_TYPE", "static")
 	var clusterProvider managertypes.ClusterInfoProvider
 	if providerType == "static" {
-		clusterProvider = sprovider.NewStaticClusterProvider()
+		clusterProvider = static_provider.NewStaticClusterProvider()
 	} else {
-		clusterProvider = dprovider.NewDynamicClusterProvider()
+		clusterProvider = dynamic_provider.NewDynamicClusterProvider()
 	}
 	lb := NewClusterManager(clusterProvider)
 

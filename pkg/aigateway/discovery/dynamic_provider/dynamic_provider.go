@@ -12,13 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package dprovider
+package dynamic_provider
 
 import (
 	"context"
 	"fmt"
 	"net"
 	"os"
+	"sync/atomic"
 	"time"
 
 	clusterpb "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
@@ -86,6 +87,7 @@ func resolveIstioAddr() string {
 
 type DynamicClusterProvider struct {
 	managertypes.BaseClusterInfoProvider
+	WarmupReady atomic.Value
 }
 
 func NewDynamicClusterProvider() managertypes.ClusterInfoProvider {
@@ -94,8 +96,13 @@ func NewDynamicClusterProvider() managertypes.ClusterInfoProvider {
 			AllClusters: make(map[string]*managertypes.ClusterInfo),
 		},
 	}
+	p.WarmupReady.Store(false)
 	p.AutoUpdateFromPilot(defaultNodeId, 10*time.Second)
-
+	// wait for the first pull of xds to complete
+	for p.WarmupReady.Load() == false {
+		//avoid cpu spin
+		time.Sleep(time.Millisecond)
+	}
 	api.LogInfof("new dynamic cluster provider: %+v", p)
 
 	xdsserver.StartCdsServer("", p)
@@ -110,7 +117,6 @@ func (p *DynamicClusterProvider) AutoUpdateFromPilot(nodeID string, interval tim
 			if err != nil {
 				api.LogErrorf("failed to pull from pilot: %v", err)
 			}
-			time.Sleep(interval)
 		}
 	}()
 }
@@ -178,6 +184,7 @@ func (p *DynamicClusterProvider) subscribeIstioPilot(nodeID string) error {
 			Endpoints: extractFromCLA(&cla),
 		}
 	}
+	p.WarmupReady.Store(true)
 	return nil
 }
 

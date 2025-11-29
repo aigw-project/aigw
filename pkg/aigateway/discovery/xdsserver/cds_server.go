@@ -24,6 +24,7 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"mosn.io/htnn/api/pkg/filtermanager/api"
 
 	managertypes "github.com/aigw-project/aigw/pkg/aigateway/clustermanager/types"
 	"github.com/aigw-project/aigw/pkg/aigateway/discovery/common"
@@ -102,6 +103,10 @@ func (s *cdsServerImpl) processAllClusters() {
 }
 
 func (s *cdsServerImpl) processSubscribedClusters(subscribeClusters []string) {
+	if len(subscribeClusters) == 0 {
+		api.LogDebug("no subscribed cluster to process")
+		return
+	}
 	clusters := []*managertypes.ClusterInfo{}
 	for _, cname := range subscribeClusters {
 		c, err := s.provider.GetClusterInfo(cname)
@@ -167,8 +172,8 @@ func (s *cdsServerImpl) DeltaClusters(stream cluster.ClusterDiscoveryService_Del
 			subscribedClusters := []string{}
 			for _, r := range req.ResourceNamesSubscribe {
 				subscribedClusters = append(subscribedClusters, r)
-				api.LogInfof("delta watching cluster: %s", r)
 			}
+			api.LogInfof("delta watching cluster: %+v", subscribedClusters)
 			s.processSubscribedClusters(subscribedClusters)
 		}
 	}
