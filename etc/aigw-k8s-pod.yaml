@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: dev-aigw
-          image: dev-aigw:latest
+          image: aigw-image/aigw:v1
           imagePullPolicy: IfNotPresent
           env:
             - name: AIGW_META_DATA_CENTER_HOST
@@ -45,16 +45,10 @@ spec:
             - name: envoy-config
               mountPath: /etc/envoy.yaml
               subPath: envoy.yaml
-            - name: clusters-json
-              mountPath: /etc/aigw/static_clusters.json
-              subPath: clusters.json
       volumes:
         - name: envoy-config
           configMap:
             name: envoy-config
-        - name: clusters-json
-          configMap:
-            name: clusters-json
 ---
 apiVersion: v1
 kind: Service

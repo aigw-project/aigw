@@ -147,14 +147,6 @@ LOG_LEVEL := info
 
 ISTIO_HOST := $(shell ifconfig -a | awk '/inet / {print $$2}' | grep -v '127.' | grep -v '192.' | head -n 1)
 
-WITH_KIND ?= OFF
-ifeq ($(WITH_KIND),ON)
-  NET_FLAGS := --network kind
-  AIGW_CLUSTER_PROVIDER_TYPE := "dynamic"
-  $(eval ISTIO_CONTAINER_IP := $(shell docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' dev_istio))
-  @echo "using ${ISTIO_CONTAINER_IP} as Istio Pilot Host"
-endif
-
 .PHONY: start-aigw-xds
 start-aigw-xds:
 	cat etc/envoy-istio.yaml \
@@ -162,11 +154,8 @@ start-aigw-xds:
 		> etc/envoy-xds.yaml
 	@echo "using ${MC_HOST} as Metadata Center Host"
 	docker run --entrypoint /bin/bash --name dev_aigw --rm -d \
-		$(NET_FLAGS) \
 		-e AIGW_META_DATA_CENTER_HOST=${MC_HOST} \
 		-e AIGW_META_DATA_CENTER_PORT=${MC_PORT} \
-		-e AIGW_ISTIO_ADDR="${ISTIO_CONTAINER_IP}:15010" \
-		-e AIGW_CLUSTER_PROVIDER_TYPE=${AIGW_CLUSTER_PROVIDER_TYPE} \
 		-v $(PWD)/etc/envoy-xds.yaml:/etc/envoy.yaml \
 		-v $(PWD)/etc/clusters.json:/etc/aigw/static_clusters.json \
 		-v $(PWD)/libgolang.so:/usr/local/envoy/libgolang.so \
@@ -198,39 +187,36 @@ stop-aigw:
 
 .PHONY: build-image
 build-image:
-	docker build -t aigw -f Dockerfile . \
+	docker build -t aigw-image/aigw:v1 -f Dockerfile . \
 		--build-arg BASE_IMAGE=${PROXY_IMAGE} \
 		--build-arg BUILD_IMAGE=${BUILD_IMAGE}
 
+.PHONY: start-aigw-k8s-pod
+start-aigw-k8s-pod:
+	kind load docker-image aigw-image/aigw:v1 --name aigw-llm-service
+	ISTIO_K8S_HOST := "istiod.istio-system.svc.cluster.local"
+	cat etc/envoy-istio.yaml \
+		| sed "s/ISTIO_ENDPOINT/${ISTIO_K8S_HOST}/" \
+		> etc/envoy-k8s.yaml
+	kubectl create configmap envoy-config --from-file=$(PWD)/etc/envoy-k8s.yaml
+	kubectl apply -f $(PWD)/etc/aigw-k8s-pod.yaml
+
 LOG_LEVEL = info
 PILOT_IMAGE = $(DOCKER_MIRROR)docker.io/istio/pilot:1.27.3
-PILOT_BASE := pilot-discovery discovery \
-              --log_output_level $(LOG_LEVEL) \
-              --meshConfig /etc/istio.yaml \
-              --configDir /etc/config_crds \
-			  --httpsAddr= 
-
-ifeq ($(WITH_KIND),ON)
-  PILOT_REGISTRY := --registries Kubernetes --kubeconfig /etc/kubeconfig.yaml
-  MAPPED_KIND_CONFIG := -v "$(PWD)/etc/kind-kubeconfig.yaml:/etc/kubeconfig.yaml"
-else
-  PILOT_REGISTRY := --registries= 
-endif
-
-PILOT_CMD := $(PILOT_BASE) $(PILOT_REGISTRY)
+PILOT_CMD = pilot-discovery discovery \
+			--log_output_level $(LOG_LEVEL) \
+			--meshConfig /etc/istio.yaml \
+			--configDir /etc/config_crds \
+			--httpsAddr= --registries=
 
 .PHONY: start-istio
 start-istio:
 	docker run --name dev_istio \
 		--entrypoint bash --rm -it -d \
-		$(NET_FLAGS) \
-		--privileged=true \
-		--user root \
 		-e INJECT_ENABLED=false \
 		-e ENABLE_CA_SERVER=false \
 		-v $(PWD)/etc/istio.yaml:/etc/istio.yaml \
 		-v $(PWD)/etc/config_crds:/etc/config_crds \
-		$(MAPPED_KIND_CONFIG) \
 		-p 15010:15010 \
 		-p 8080:8080\
 		${PILOT_IMAGE} \
@@ -243,6 +229,6 @@ stop-istio:
 .PHONY: start-mock-service
 start-mock-service:
 	cd $(PWD)/test/service_discovery/
-	docker build -t mock-service:1.0 .
-	kind load docker-image mock-service:1.0 --name istio-test
+	docker build -t aigw-image/mock-llm:v1 .
+	kind load docker-image aigw-image/mock-llm:v1 --name aigw-llm-service
 	kubectl apply -f mock_service_config.yaml
