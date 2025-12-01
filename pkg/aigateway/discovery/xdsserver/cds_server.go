@@ -167,13 +167,9 @@ func (s *cdsServerImpl) DeltaClusters(stream cluster.ClusterDiscoveryService_Del
 				continue
 			}
 
-			// TODO: delta watching cluster
-			subscribedClusters := []string{}
-			for _, r := range req.ResourceNamesSubscribe {
-				subscribedClusters = append(subscribedClusters, r)
-			}
-			api.LogInfof("delta watching cluster: %+v", subscribedClusters)
-			s.processSubscribedClusters(subscribedClusters)
+			// delta watching cluster
+			api.LogInfof("delta watching cluster: %+v", req.ResourceNamesSubscribe)
+			s.processSubscribedClusters(req.ResourceNamesSubscribe)
 		}
 	}
 }
