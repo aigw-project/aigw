@@ -170,7 +170,7 @@ func (logItems *LLMLogItems) appendUsage(usage openaigo.CompletionUsage) {
 		logItems.usage.PromptTokens = usage.PromptTokens
 		logItems.usage.CompletionTokens = usage.CompletionTokens
 		logItems.usage.TotalTokens = usage.TotalTokens
-		if usage.PromptTokensDetails.CachedTokens != 0 {
+		if usage.PromptTokensDetails != nil && usage.PromptTokensDetails.CachedTokens != 0 {
 			logItems.usage.CachedTokens = usage.PromptTokensDetails.CachedTokens
 		}
 	}
