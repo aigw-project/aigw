@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestTpotPredictionImplInit(t *testing.T) {
@@ -148,11 +147,11 @@ func TestTpotPredictor(t *testing.T) {
 
 	for i := 0; i < len(segmentParams) && i < len(learnedParams); i++ {
 		if len(learnedParams[i]) >= 3 {
-			require.InDelta(t, segmentParams[i][0], learnedParams[i][0], 0.2,
+			assert.InDelta(t, segmentParams[i][0], learnedParams[i][0], 0.2,
 				fmt.Sprintf("segment %d with inaccurate coefficient a", i))
-			require.InDelta(t, segmentParams[i][1], learnedParams[i][1], 0.0005,
+			assert.InDelta(t, segmentParams[i][1], learnedParams[i][1], 0.0005,
 				fmt.Sprintf("segment %d with inaccurate coefficient b", i))
-			require.InDelta(t, segmentParams[i][2], learnedParams[i][2], 5,
+			assert.InDelta(t, segmentParams[i][2], learnedParams[i][2], 5,
 				fmt.Sprintf("segment %d with inaccurate coefficient c", i))
 		}
 	}
@@ -189,4 +188,124 @@ func generateSamples(count int, trueFunction func(uint64, uint64) float64) []sam
 	}
 
 	return samples
+}
+
+// TestNewTpotPredictorWithParams tests creating a predictor directly from parameters
+func TestNewTpotPredictorWithParams(t *testing.T) {
+	thresh := []uint64{10, 50}
+
+	// Define params for 3 segments: [0,10), [10,50), [50,inf)
+	// Each segment has params [coeff for batchsize, coeff for totalTokenNum, constant]
+	params := [][]float64{
+		{0.5, 0.001, 10},  // segment 0: y = 0.5*x1 + 0.001*x2 + 10
+		{0.3, 0.002, 20},  // segment 1: y = 0.3*x1 + 0.002*x2 + 20
+		{0.8, 0.0005, 5},  // segment 2: y = 0.8*x1 + 0.0005*x2 + 5
+	}
+
+	// Create predictor from params
+	predictor := NewTpotPredictorWithParams(thresh, params)
+	assert.NotNil(t, predictor)
+
+	// Test predictions in different segments
+	testCases := []struct {
+		batchsize     uint64
+		totalTokenNum uint64
+		expected      float64
+		segment       int
+	}{
+		{5, 1000, 0.5*5 + 0.001*1000 + 10, 0},    // segment 0
+		{20, 2000, 0.3*20 + 0.002*2000 + 20, 1},  // segment 1
+		{100, 5000, 0.8*100 + 0.0005*5000 + 5, 2}, // segment 2
+	}
+
+	for i, tc := range testCases {
+		predicted := predictor.Predict(tc.batchsize, tc.totalTokenNum)
+		expected := tc.expected
+		t.Logf("Test case %d: batchsize=%d, totalTokenNum=%d, segment=%d, expected=%.4f, predicted=%.4f",
+			i, tc.batchsize, tc.totalTokenNum, tc.segment, expected, predicted)
+		assert.InDelta(t, expected, predicted, 0.0001,
+			"Prediction mismatch for segment %d", tc.segment)
+	}
+}
+
+// TestNewTpotPredictorWithParamsWithTraining tests that a predictor created from params
+// produces the same results as a trained predictor
+func TestNewTpotPredictorWithParamsWithTraining(t *testing.T) {
+	thresh := []uint64{4, 16, 24}
+
+	// y = a*x1 + b*x2 + c for each segment
+	segmentParams := [][]float64{
+		{0.5, 0.001, 10},
+		{0.3, 0.002, 20},
+		{0.7, 0.0015, 15},
+		{0.4, 0.0025, 25},
+	}
+
+	// True function for generating training data
+	trueFunction := func(x1, x2 uint64) float64 {
+		var segmentIdx int
+		for i, threshold := range thresh {
+			if x1 < threshold {
+				segmentIdx = i
+				break
+			}
+			if i == len(thresh)-1 {
+				segmentIdx = i + 1
+			}
+		}
+		params := segmentParams[segmentIdx]
+		return params[0]*float64(x1) + params[1]*float64(x2) + params[2]
+	}
+
+	// Train a predictor
+	trainedPredictor := NewTpotPredictor(thresh)
+	trainingSamples := generateSamples(3000, trueFunction)
+	for _, sample := range trainingSamples {
+		trainedPredictor.Train(sample.x1, sample.x2, sample.y)
+	}
+
+	// Get trained params
+	trainedParams := trainedPredictor.Params()
+	t.Logf("Trained params: %v", trainedParams)
+
+	// Create a new predictor from trained params
+	paramsPredictor := NewTpotPredictorWithParams(thresh, trainedParams)
+
+	// Test that both predictors produce the same results
+	testSamples := generateSamples(100, trueFunction)
+	for _, sample := range testSamples {
+		trainedPred := trainedPredictor.Predict(sample.x1, sample.x2)
+		paramsPred := paramsPredictor.Predict(sample.x1, sample.x2)
+		assert.InDelta(t, trainedPred, paramsPred, 0.0001,
+			"Predictions should match for batchsize=%d, totalTokenNum=%d", sample.x1, sample.x2)
+	}
+}
+
+// TestNewTpotPredictorWithParamsEmptyParams tests creating predictor with empty/insufficient params
+func TestNewTpotPredictorWithParamsEmptyParams(t *testing.T) {
+	thresh := []uint64{10, 20}
+
+	// Test with nil params - should still create predictor with default RLS
+	predictor := NewTpotPredictorWithParams(thresh, nil)
+	assert.NotNil(t, predictor)
+
+	// Should be able to predict (returns 0 since no params set)
+	pred := predictor.Predict(5, 100)
+	assert.Equal(t, 0.0, pred, "Prediction with empty params should be 0")
+
+	// Test with insufficient params - missing segments should use default RLS
+	partialParams := [][]float64{
+		{0.5, 0.001, 10}, // only provide params for first segment
+	}
+	predictor2 := NewTpotPredictorWithParams(thresh, partialParams)
+	assert.NotNil(t, predictor2)
+
+	// First segment should use provided params
+	pred1 := predictor2.Predict(5, 1000)
+	expected1 := 0.5*5 + 0.001*1000 + 10
+	assert.InDelta(t, expected1, pred1, 0.0001, "First segment should use provided params")
+
+	// Other segments should return 0 (default RLS params are 0)
+	pred2 := predictor2.Predict(15, 1000)
+	assert.Equal(t, 0.0, pred2, "Other segments should return 0 with default RLS")
 }

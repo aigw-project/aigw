@@ -52,6 +52,30 @@ func NewTpotPredictor(thresh []uint64) TpotPrediction {
 	return c
 }
 
+// NewTpotPredictorWithParams creates a TpotPrediction from given thresholds and parameters
+// thresh: the threshold array for batchsize segmentation
+// params: 2D array where each inner array contains [coeff for batchsize, coeff for totalTokenNum, constant]
+// This allows creating a prediction instance directly from trained parameters without training
+func NewTpotPredictorWithParams(thresh []uint64, params [][]float64) TpotPrediction {
+	c := &TpotPredictionImpl{
+		thresh: make([]uint64, len(thresh)),
+	}
+	copy(c.thresh, thresh)
+	sort.Slice(c.thresh, func(i, j int) bool { return c.thresh[i] < c.thresh[j] })
+
+	// e.g. input 2 thresh, set segment as [0, thresh1), [thresh1, thresh2), [thresh2, inf)
+	segNum := len(thresh) + 1
+	c.rls = make([]*rls.TpotRecursiveLeastSquares, segNum)
+	for i := 0; i < segNum; i++ {
+		if i < len(params) {
+			c.rls[i] = rls.NewTpotRLSWithParams(params[i])
+		} else {
+			c.rls[i] = rls.NewTpotRLS(1.0)
+		}
+	}
+	return c
+}
+
 // Params return the parameters of all RLS
 func (c *TpotPredictionImpl) Params() [][]float64 {
 	m := make([][]float64, len(c.rls))

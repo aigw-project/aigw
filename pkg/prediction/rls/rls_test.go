@@ -80,3 +80,127 @@ func TestParams(t *testing.T) {
 		t.Fatalf("coeff size invalid, expect %v actual %v", UT_RLS_PARAM_SIZE+1, len(r.Params()))
 	}
 }
+
+// Test NewTpotRLSWithParams creates RLS with given parameters
+func TestNewTpotRLSWithParams(t *testing.T) {
+	// Create RLS with specific params
+	params := []float64{0.5, 0.001, 10}
+	r := NewTpotRLSWithParams(params)
+
+	if r == nil {
+		t.Fatal("RLS instance should not be nil")
+	}
+
+	// Check params are set correctly
+	gotParams := r.Params()
+	if len(gotParams) != 3 {
+		t.Fatalf("expected params length 3, got %d", len(gotParams))
+	}
+
+	for i, expected := range params {
+		if gotParams[i] != expected {
+			t.Errorf("param[%d] = %v, want %v", i, gotParams[i], expected)
+		}
+	}
+}
+
+// Test NewTpotRLSWithParams prediction
+func TestNewTpotRLSWithParamsPredict(t *testing.T) {
+	// Create RLS with params: y = 0.5*x1 + 0.001*x2 + 10
+	params := []float64{0.5, 0.001, 10}
+	r := NewTpotRLSWithParams(params)
+
+	// Test prediction
+	x := []uint64{5, 1000}
+	predicted := r.Predict(x)
+	expected := 0.5*5 + 0.001*1000 + 10 // 2.5 + 1 + 10 = 13.5
+
+	if predicted != expected {
+		t.Errorf("Predict() = %v, want %v", predicted, expected)
+	}
+}
+
+// Test NewTpotRLSWithParams with short params
+func TestNewTpotRLSWithParamsShort(t *testing.T) {
+	// Create RLS with only 2 params (should be padded with 0)
+	params := []float64{0.5, 0.001}
+	r := NewTpotRLSWithParams(params)
+
+	gotParams := r.Params()
+	if len(gotParams) != 3 {
+		t.Fatalf("expected params length 3, got %d", len(gotParams))
+	}
+
+	if gotParams[0] != 0.5 {
+		t.Errorf("param[0] = %v, want 0.5", gotParams[0])
+	}
+	if gotParams[1] != 0.001 {
+		t.Errorf("param[1] = %v, want 0.001", gotParams[1])
+	}
+	if gotParams[2] != 0 {
+		t.Errorf("param[2] = %v, want 0 (default)", gotParams[2])
+	}
+}
+
+// Test NewTpotRLSWithParams with long params
+func TestNewTpotRLSWithParamsLong(t *testing.T) {
+	// Create RLS with more than 3 params (should be truncated)
+	params := []float64{0.5, 0.001, 10, 99, 88}
+	r := NewTpotRLSWithParams(params)
+
+	gotParams := r.Params()
+	if len(gotParams) != 3 {
+		t.Fatalf("expected params length 3, got %d", len(gotParams))
+	}
+
+	expected := []float64{0.5, 0.001, 10}
+	for i, exp := range expected {
+		if gotParams[i] != exp {
+			t.Errorf("param[%d] = %v, want %v", i, gotParams[i], exp)
+		}
+	}
+}
+
+// Test that NewTpotRLSWithParams produces same predictions as trained RLS
+func TestNewTpotRLSWithParamsVsTrained(t *testing.T) {
+	// Train an RLS
+
+trained := NewTpotRLS(UT_RLS_FORGET_RATIO)
+
+	// Train with data following: y = 0.5*x1 + 0.002*x2 + 5
+	trainingData := []struct {
+		x1, x2 uint64
+		y      float64
+	}{
+		{10, 1000, 0.5*10 + 0.002*1000 + 5},
+		{20, 2000, 0.5*20 + 0.002*2000 + 5},
+		{30, 3000, 0.5*30 + 0.002*3000 + 5},
+		{40, 4000, 0.5*40 + 0.002*4000 + 5},
+	}
+
+	for _, d := range trainingData {
+		trained.Update([]uint64{d.x1, d.x2}, d.y)
+	}
+
+	// Get trained params and create new RLS from them
+	trainedParams := trained.Params()
+	fromParams := NewTpotRLSWithParams(trainedParams)
+
+	// Test predictions are the same
+	testData := []struct {
+		x1, x2 uint64
+	}{
+		{15, 1500},
+		{25, 2500},
+		{35, 3500},
+	}
+
+	for _, td := range testData {
+		trainedPred := trained.Predict([]uint64{td.x1, td.x2})
+		fromParamsPred := fromParams.Predict([]uint64{td.x1, td.x2})
+		if trainedPred != fromParamsPred {
+			t.Errorf("Predictions differ for x1=%d, x2=%d: trained=%v, fromParams=%v",
+				td.x1, td.x2, trainedPred, fromParamsPred)
+		}
+	}
+}
