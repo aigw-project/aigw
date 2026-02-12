@@ -15,9 +15,14 @@
 package prediction
 
 import (
-	"sort"
+	"errors"
 
 	rls "github.com/aigw-project/aigw/pkg/prediction/rls"
+)
+
+var (
+	// ErrInvalidThreshOrder is returned when thresh is not in ascending order
+	ErrInvalidThreshOrder = errors.New("thresh must be in strictly ascending order with no duplicates")
 )
 
 type TpotPrediction interface {
@@ -35,13 +40,27 @@ type TpotPredictionImpl struct {
 	rls    []*rls.TpotRecursiveLeastSquares
 }
 
+// validateThresh checks if thresh is in strictly ascending order with no duplicates
+func validateThresh(thresh []uint64) error {
+	for i := 1; i < len(thresh); i++ {
+		if thresh[i] <= thresh[i-1] {
+			return ErrInvalidThreshOrder
+		}
+	}
+	return nil
+}
+
 // NewTpotPredictor create tpot predictor, set threshes and init rls for each thresh segment
-func NewTpotPredictor(thresh []uint64) TpotPrediction {
+// thresh must be in strictly ascending order with no duplicates, otherwise returns error
+func NewTpotPredictor(thresh []uint64) (TpotPrediction, error) {
+	if err := validateThresh(thresh); err != nil {
+		return nil, err
+	}
+
 	c := &TpotPredictionImpl{
 		thresh: make([]uint64, len(thresh)),
 	}
 	copy(c.thresh, thresh)
-	sort.Slice(c.thresh, func(i, j int) bool { return c.thresh[i] < c.thresh[j] })
 
 	// e.g. input 2 thresh, set segment as [0, thresh1), [thresh1, thresh2), [thresh2, inf)
 	segNum := len(thresh) + 1
@@ -49,19 +68,22 @@ func NewTpotPredictor(thresh []uint64) TpotPrediction {
 	for i := 0; i < segNum; i++ {
 		c.rls[i] = rls.NewTpotRLS(1.0)
 	}
-	return c
+	return c, nil
 }
 
 // NewTpotPredictorWithParams creates a TpotPrediction from given thresholds and parameters
-// thresh: the threshold array for batchsize segmentation
+// thresh: the threshold array for batchsize segmentation, must be in strictly ascending order
 // params: 2D array where each inner array contains [coeff for batchsize, coeff for totalTokenNum, constant]
 // This allows creating a prediction instance directly from trained parameters without training
-func NewTpotPredictorWithParams(thresh []uint64, params [][]float64) TpotPrediction {
+func NewTpotPredictorWithParams(thresh []uint64, params [][]float64) (TpotPrediction, error) {
+	if err := validateThresh(thresh); err != nil {
+		return nil, err
+	}
+
 	c := &TpotPredictionImpl{
 		thresh: make([]uint64, len(thresh)),
 	}
 	copy(c.thresh, thresh)
-	sort.Slice(c.thresh, func(i, j int) bool { return c.thresh[i] < c.thresh[j] })
 
 	// e.g. input 2 thresh, set segment as [0, thresh1), [thresh1, thresh2), [thresh2, inf)
 	segNum := len(thresh) + 1
@@ -73,7 +95,7 @@ func NewTpotPredictorWithParams(thresh []uint64, params [][]float64) TpotPredict
 			c.rls[i] = rls.NewTpotRLS(1.0)
 		}
 	}
-	return c
+	return c, nil
 }
 
 // Params return the parameters of all RLS

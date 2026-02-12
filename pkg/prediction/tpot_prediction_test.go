@@ -25,14 +25,18 @@ import (
 )
 
 func TestTpotPredictionImplInit(t *testing.T) {
-	p := NewTpotPredictor([]uint64{10, 50, 100})
+	p, err := NewTpotPredictor([]uint64{10, 50, 100})
+	assert.NoError(t, err)
+	assert.NotNil(t, p)
 	if !assert.Equal(t, p.Params()[0], []float64{0.0, 0.0, 0.0}) {
 		t.Fatalf("RLS not initialized correctly")
 	}
 }
 
 func TestSegment(t *testing.T) {
-	p := NewTpotPredictor([]uint64{10, 20, 30})
+	p, err := NewTpotPredictor([]uint64{10, 20, 30})
+	assert.NoError(t, err)
+	assert.NotNil(t, p)
 	assert.Equal(t, 0, p.(*TpotPredictionImpl).segment(5))
 	assert.Equal(t, 1, p.(*TpotPredictionImpl).segment(10))
 	assert.Equal(t, 1, p.(*TpotPredictionImpl).segment(15))
@@ -41,7 +45,9 @@ func TestSegment(t *testing.T) {
 }
 
 func TestTrainAndPredict(t *testing.T) {
-	p := NewTpotPredictor([]uint64{10})
+	p, err := NewTpotPredictor([]uint64{10})
+	assert.NoError(t, err)
+	assert.NotNil(t, p)
 	var batchsize uint64 = 5
 	var totalTokenNum uint64 = 100
 	y := 50.0
@@ -54,7 +60,9 @@ func TestTrainAndPredict(t *testing.T) {
 }
 
 func TestParams(t *testing.T) {
-	p := NewTpotPredictor([]uint64{10})
+	p, err := NewTpotPredictor([]uint64{10})
+	assert.NoError(t, err)
+	assert.NotNil(t, p)
 	params := p.Params()
 	if len(params) != 2 {
 		t.Fatalf("expected 2 segments, got %d", len(params))
@@ -99,7 +107,9 @@ func TestTpotPredictor(t *testing.T) {
 	testSamples := generateSamples(1000, trueFunction)
 
 	// create predictor
-	predictor := NewTpotPredictor(thresh)
+	predictor, err := NewTpotPredictor(thresh)
+	assert.NoError(t, err)
+	assert.NotNil(t, predictor)
 
 	// train
 	fmt.Println("train & test models...")
@@ -203,7 +213,8 @@ func TestNewTpotPredictorWithParams(t *testing.T) {
 	}
 
 	// Create predictor from params
-	predictor := NewTpotPredictorWithParams(thresh, params)
+	predictor, err := NewTpotPredictorWithParams(thresh, params)
+	assert.NoError(t, err)
 	assert.NotNil(t, predictor)
 
 	// Test predictions in different segments
@@ -213,8 +224,8 @@ func TestNewTpotPredictorWithParams(t *testing.T) {
 		expected      float64
 		segment       int
 	}{
-		{5, 1000, 0.5*5 + 0.001*1000 + 10, 0},    // segment 0
-		{20, 2000, 0.3*20 + 0.002*2000 + 20, 1},  // segment 1
+		{5, 1000, 0.5*5 + 0.001*1000 + 10, 0},     // segment 0
+		{20, 2000, 0.3*20 + 0.002*2000 + 20, 1},   // segment 1
 		{100, 5000, 0.8*100 + 0.0005*5000 + 5, 2}, // segment 2
 	}
 
@@ -258,7 +269,10 @@ func TestNewTpotPredictorWithParamsWithTraining(t *testing.T) {
 	}
 
 	// Train a predictor
-	trainedPredictor := NewTpotPredictor(thresh)
+	trainedPredictor, err := NewTpotPredictor(thresh)
+	assert.NoError(t, err)
+	assert.NotNil(t, trainedPredictor)
+
 	trainingSamples := generateSamples(3000, trueFunction)
 	for _, sample := range trainingSamples {
 		trainedPredictor.Train(sample.x1, sample.x2, sample.y)
@@ -269,7 +283,9 @@ func TestNewTpotPredictorWithParamsWithTraining(t *testing.T) {
 	t.Logf("Trained params: %v", trainedParams)
 
 	// Create a new predictor from trained params
-	paramsPredictor := NewTpotPredictorWithParams(thresh, trainedParams)
+	paramsPredictor, err := NewTpotPredictorWithParams(thresh, trainedParams)
+	assert.NoError(t, err)
+	assert.NotNil(t, paramsPredictor)
 
 	// Test that both predictors produce the same results
 	testSamples := generateSamples(100, trueFunction)
@@ -286,7 +302,8 @@ func TestNewTpotPredictorWithParamsEmptyParams(t *testing.T) {
 	thresh := []uint64{10, 20}
 
 	// Test with nil params - should still create predictor with default RLS
-	predictor := NewTpotPredictorWithParams(thresh, nil)
+	predictor, err := NewTpotPredictorWithParams(thresh, nil)
+	assert.NoError(t, err)
 	assert.NotNil(t, predictor)
 
 	// Should be able to predict (returns 0 since no params set)
@@ -297,7 +314,8 @@ func TestNewTpotPredictorWithParamsEmptyParams(t *testing.T) {
 	partialParams := [][]float64{
 		{0.5, 0.001, 10}, // only provide params for first segment
 	}
-	predictor2 := NewTpotPredictorWithParams(thresh, partialParams)
+	predictor2, err := NewTpotPredictorWithParams(thresh, partialParams)
+	assert.NoError(t, err)
 	assert.NotNil(t, predictor2)
 
 	// First segment should use provided params
@@ -319,7 +337,8 @@ func TestNewTpotPredictorWithParamsCanTrain(t *testing.T) {
 		{0.5, 0.001, 10}, // segment 0
 		{0.3, 0.002, 20}, // segment 1
 	}
-	predictor := NewTpotPredictorWithParams(thresh, initialParams)
+	predictor, err := NewTpotPredictorWithParams(thresh, initialParams)
+	assert.NoError(t, err)
 	assert.NotNil(t, predictor)
 
 	// Verify initial prediction
@@ -342,4 +361,52 @@ func TestNewTpotPredictorWithParamsCanTrain(t *testing.T) {
 	// Prediction should be closer to 25 now
 	predFinal := predictor.Predict(5, 1000)
 	assert.InDelta(t, 25.0, predFinal, 1.0, "Prediction should converge towards training target")
+}
+
+// TestNewTpotPredictorInvalidThresh tests that invalid thresh returns error
+func TestNewTpotPredictorInvalidThresh(t *testing.T) {
+	// Test descending order
+	_, err := NewTpotPredictor([]uint64{100, 50, 10})
+	assert.ErrorIs(t, err, ErrInvalidThreshOrder, "Should return error for descending order")
+
+	// Test equal values
+	_, err = NewTpotPredictor([]uint64{10, 10, 20})
+	assert.ErrorIs(t, err, ErrInvalidThreshOrder, "Should return error for equal values")
+
+	// Test unsorted order
+	_, err = NewTpotPredictor([]uint64{10, 30, 20})
+	assert.ErrorIs(t, err, ErrInvalidThreshOrder, "Should return error for unsorted order")
+
+	// Test valid order - should succeed
+	p, err := NewTpotPredictor([]uint64{10, 20, 30})
+	assert.NoError(t, err)
+	assert.NotNil(t, p)
+
+	// Test empty thresh - should succeed
+	p, err = NewTpotPredictor([]uint64{})
+	assert.NoError(t, err)
+	assert.NotNil(t, p)
+
+	// Test single value - should succeed
+	p, err = NewTpotPredictor([]uint64{10})
+	assert.NoError(t, err)
+	assert.NotNil(t, p)
+}
+
+// TestNewTpotPredictorWithParamsInvalidThresh tests that invalid thresh returns error for WithParams
+func TestNewTpotPredictorWithParamsInvalidThresh(t *testing.T) {
+	params := [][]float64{{0.5, 0.001, 10}}
+
+	// Test descending order
+	_, err := NewTpotPredictorWithParams([]uint64{100, 50}, params)
+	assert.ErrorIs(t, err, ErrInvalidThreshOrder, "Should return error for descending order")
+
+	// Test equal values
+	_, err = NewTpotPredictorWithParams([]uint64{10, 10}, params)
+	assert.ErrorIs(t, err, ErrInvalidThreshOrder, "Should return error for equal values")
+
+	// Test valid order - should succeed
+	p, err := NewTpotPredictorWithParams([]uint64{10, 20}, params)
+	assert.NoError(t, err)
+	assert.NotNil(t, p)
 }
