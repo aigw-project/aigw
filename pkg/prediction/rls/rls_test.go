@@ -164,8 +164,7 @@ func TestNewTpotRLSWithParamsLong(t *testing.T) {
 // Test that NewTpotRLSWithParams produces same predictions as trained RLS
 func TestNewTpotRLSWithParamsVsTrained(t *testing.T) {
 	// Train an RLS
-
-trained := NewTpotRLS(UT_RLS_FORGET_RATIO)
+	trained := NewTpotRLS(UT_RLS_FORGET_RATIO)
 
 	// Train with data following: y = 0.5*x1 + 0.002*x2 + 5
 	trainingData := []struct {
@@ -202,5 +201,38 @@ trained := NewTpotRLS(UT_RLS_FORGET_RATIO)
 			t.Errorf("Predictions differ for x1=%d, x2=%d: trained=%v, fromParams=%v",
 				td.x1, td.x2, trainedPred, fromParamsPred)
 		}
+	}
+}
+
+// Test that RLS created from params can be safely updated (P matrix is initialized)
+func TestNewTpotRLSWithParamsCanUpdate(t *testing.T) {
+	// Create RLS with specific params
+	params := []float64{0.5, 0.001, 10}
+	r := NewTpotRLSWithParams(params)
+
+	// Verify P matrix is initialized
+	if r.P == nil {
+		t.Fatal("P matrix should be initialized")
+	}
+	if len(r.P) != 3 {
+		t.Fatalf("P matrix should be 3x3, got %dx?", len(r.P))
+	}
+	for i := range r.P {
+		if len(r.P[i]) != 3 {
+			t.Fatalf("P matrix row %d should have length 3, got %d", i, len(r.P[i]))
+		}
+	}
+
+	// Test that Update() can be called without panic
+	x := []uint64{5, 1000}
+	y := 20.0
+
+	// This should not panic
+	r.Update(x, y)
+
+	// Verify we can still predict after update
+	pred := r.Predict(x)
+	if pred < 0 {
+		t.Errorf("Prediction should be non-negative after Update, got %v", pred)
 	}
 }

@@ -309,3 +309,37 @@ func TestNewTpotPredictorWithParamsEmptyParams(t *testing.T) {
 	pred2 := predictor2.Predict(15, 1000)
 	assert.Equal(t, 0.0, pred2, "Other segments should return 0 with default RLS")
 }
+
+// TestNewTpotPredictorWithParamsCanTrain tests that predictor created from params can still be trained
+func TestNewTpotPredictorWithParamsCanTrain(t *testing.T) {
+	thresh := []uint64{10}
+
+	// Create predictor with initial params
+	initialParams := [][]float64{
+		{0.5, 0.001, 10}, // segment 0
+		{0.3, 0.002, 20}, // segment 1
+	}
+	predictor := NewTpotPredictorWithParams(thresh, initialParams)
+	assert.NotNil(t, predictor)
+
+	// Verify initial prediction
+	predBefore := predictor.Predict(5, 1000)
+	expectedBefore := 0.5*5 + 0.001*1000 + 10 // 15.5
+	assert.InDelta(t, expectedBefore, predBefore, 0.0001, "Initial prediction should match params")
+
+	// Train the predictor - this should not panic
+	predictor.Train(5, 1000, 25.0)
+
+	// Verify prediction changed after training
+	predAfter := predictor.Predict(5, 1000)
+	assert.NotEqual(t, predBefore, predAfter, "Prediction should change after training")
+
+	// Train more to converge towards the new value
+	for i := 0; i < 100; i++ {
+		predictor.Train(5, 1000, 25.0)
+	}
+
+	// Prediction should be closer to 25 now
+	predFinal := predictor.Predict(5, 1000)
+	assert.InDelta(t, 25.0, predFinal, 1.0, "Prediction should converge towards training target")
+}
