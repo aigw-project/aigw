@@ -12,24 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG BUILD_IMAGE=golang:1.22-bullseye
-ARG BASE_IMAGE=envoyproxy/envoy:contrib-v1.35.6
+FROM python:3.11-slim
 
-FROM ${BUILD_IMAGE} as builder
+WORKDIR /app
 
-WORKDIR /work
-
-COPY . /work
-
-RUN	make build-so-local
-
-FROM ${BASE_IMAGE} as initial
-
-# install common tools for debug
-RUN apt update \
-    && apt install -y net-tools iputils-ping curl vim \
-        tcpdump lsof procps
-
-FROM initial as final
-
-COPY --from=builder /work/libgolang.so /usr/local/envoy/libgolang.so
+EXPOSE 10240

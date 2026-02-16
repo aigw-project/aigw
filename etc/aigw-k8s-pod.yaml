@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dev-aigw
+  namespace: default
+  labels:
+    app: dev-aigw
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dev-aigw
+  template:
+    metadata:
+      labels:
+        app: dev-aigw
+    spec:
+      containers:
+        - name: dev-aigw
+          image: aigw-image/aigw:v1
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: AIGW_META_DATA_CENTER_HOST
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            - name: AIGW_META_DATA_CENTER_PORT
+              value: "8080"
+            - name: LOG_LEVEL
+              value: "info"
+            - name: AIGW_ISTIO_ADDR
+              value: "istiod.istio-system.svc.cluster.local:15010"
+            - name: AIGW_CLUSTER_PROVIDER_TYPE
+              value: "dynamic"
+          command: ["/bin/bash"]
+          args: ["-c", "envoy -c /etc/envoy.yaml --log-level ${LOG_LEVEL}"]
+          ports:
+            - name: http
+              containerPort: 10000
+            - name: backend
+              containerPort: 10001
+            - name: admin
+              containerPort: 15000
+          volumeMounts:
+            - name: envoy-config
+              mountPath: /etc/envoy.yaml
+              subPath: envoy.yaml
+      volumes:
+        - name: envoy-config
+          configMap:
+            name: envoy-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dev-aigw
+  namespace: default
+spec:
+  selector:
+    app: dev-aigw
+  ports:
+    - name: http
+      port: 10000
+      targetPort: 10000
+    - name: backend
+      port: 10001
+      targetPort: 10001
+    - name: admin
+      port: 15000
+      targetPort: 15000
+  type: ClusterIP

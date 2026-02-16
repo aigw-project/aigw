@@ -44,6 +44,13 @@ func GetDurationFromEnv(name string, defaultValue time.Duration) time.Duration {
 	return defaultValue
 }
 
+func GetStrFromEnv(name string, defaultValue string) string {
+	if value := os.Getenv(name); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
 type LBCtxKey string
 
 func MustGetValueFromCtx[T any](m context.Context, key LBCtxKey) T {

@@ -12,17 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package staticdemo
+package static_provider
 
 import (
 	"encoding/json"
-	"errors"
 	"io"
 	"os"
 
 	"mosn.io/htnn/api/pkg/filtermanager/api"
 
 	managertypes "github.com/aigw-project/aigw/pkg/aigateway/clustermanager/types"
+	"github.com/aigw-project/aigw/pkg/aigateway/discovery/xdsserver"
 )
 
 const (
@@ -68,12 +68,14 @@ func init() {
 }
 
 type StaticClusterProvider struct {
-	allClusters map[string]*managertypes.ClusterInfo
+	managertypes.BaseClusterInfoProvider
 }
 
 func NewStaticClusterProvider() managertypes.ClusterInfoProvider {
 	p := &StaticClusterProvider{
-		allClusters: make(map[string]*managertypes.ClusterInfo),
+		BaseClusterInfoProvider: managertypes.BaseClusterInfoProvider{
+			AllClusters: make(map[string]*managertypes.ClusterInfo),
+		},
 	}
 	for _, c := range config.Clusters {
 		endpoints := make([]managertypes.Endpoint, 0, len(c.Endpoints))
@@ -83,7 +85,7 @@ func NewStaticClusterProvider() managertypes.ClusterInfoProvider {
 				Port:    ep.Port,
 			})
 		}
-		p.allClusters[c.Name] = &managertypes.ClusterInfo{
+		p.AllClusters[c.Name] = &managertypes.ClusterInfo{
 			Name:      c.Name,
 			Endpoints: endpoints,
 		}
@@ -91,36 +93,6 @@ func NewStaticClusterProvider() managertypes.ClusterInfoProvider {
 
 	api.LogInfof("new static cluster provider: %+v", p)
 
-	startCdsServer(defaultCdsAddress, p)
+	xdsserver.StartCdsServer("", p)
 	return p
-}
-
-func (p *StaticClusterProvider) GetAllClusters() []*managertypes.ClusterInfo {
-	clusters := make([]*managertypes.ClusterInfo, 0, len(p.allClusters))
-	for _, cluster := range p.allClusters {
-		clusters = append(clusters, cluster)
-	}
-	return clusters
-}
-
-func (p *StaticClusterProvider) getCluster(name string) *managertypes.ClusterInfo {
-	if cluster, ok := p.allClusters[name]; ok {
-		return cluster
-	}
-	api.LogErrorf("cluster %s not found, all clusters: %v", name, p.allClusters)
-	return nil
-}
-
-func (p *StaticClusterProvider) GetClusterInfo(name string) (*managertypes.ClusterInfo, error) {
-	if cluster := p.getCluster(name); cluster != nil {
-		return cluster, nil
-	}
-	return nil, errors.New("cluster not found")
-}
-
-func (p *StaticClusterProvider) WatchCluster(name string, notifier managertypes.ClusterInfoNotifier) {
-	// TODO: static cluster won't change, so just notify once
-	if cluster := p.getCluster(name); cluster != nil {
-		notifier(cluster)
-	}
 }

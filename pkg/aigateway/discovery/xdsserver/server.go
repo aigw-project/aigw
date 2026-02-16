@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package staticdemo
+package xdsserver
 
 import (
 	"net"
@@ -22,14 +22,20 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 	"mosn.io/htnn/api/pkg/filtermanager/api"
+
+	managertypes "github.com/aigw-project/aigw/pkg/aigateway/clustermanager/types"
 )
 
 const (
 	defaultCdsAddress = "127.0.0.1:9999"
 )
 
-func startCdsServer(address string, provider *StaticClusterProvider) {
-	lis, err := net.Listen("tcp", address)
+func StartCdsServer(address string, provider managertypes.ClusterInfoProvider) {
+	cdsAddr := address
+	if cdsAddr == "" {
+		cdsAddr = defaultCdsAddress
+	}
+	lis, err := net.Listen("tcp", cdsAddr)
 	if err != nil {
 		api.LogErrorf("listen local cds server failed: %v", err)
 		return

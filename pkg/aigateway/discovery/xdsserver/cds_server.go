@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package staticdemo
+package xdsserver
 
 import (
 	"context"
@@ -25,16 +25,17 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	managertypes "github.com/aigw-project/aigw/pkg/aigateway/clustermanager/types"
 	"github.com/aigw-project/aigw/pkg/aigateway/discovery/common"
 )
 
 type cdsServerImpl struct {
-	provider     *StaticClusterProvider
+	provider     managertypes.ClusterInfoProvider
 	responseChan chan *discovery.DeltaDiscoveryResponse
 	cluster.UnimplementedClusterDiscoveryServiceServer
 }
 
-func NewCDSServer(provider *StaticClusterProvider) cluster.ClusterDiscoveryServiceServer {
+func NewCDSServer(provider managertypes.ClusterInfoProvider) cluster.ClusterDiscoveryServiceServer {
 	return &cdsServerImpl{
 		provider:     provider,
 		responseChan: make(chan *discovery.DeltaDiscoveryResponse, 100),
@@ -100,6 +101,32 @@ func (s *cdsServerImpl) processAllClusters() {
 	s.responseChan <- resp
 }
 
+func (s *cdsServerImpl) processSubscribedClusters(subscribeClusters []string) {
+	if len(subscribeClusters) == 0 {
+		api.LogDebug("no subscribed cluster to process")
+		return
+	}
+	clusters := []*managertypes.ClusterInfo{}
+	for _, cname := range subscribeClusters {
+		c, err := s.provider.GetClusterInfo(cname)
+		if c == nil || err != nil {
+			api.LogErrorf("could not find cluster %s, err %v", cname, err)
+			continue
+		}
+		clusters = append(clusters, c)
+	}
+	nonce := common.GenerateNonce()
+	resources := make([]*discovery.Resource, 0, len(clusters))
+	for _, c := range clusters {
+		clustercfg := common.GenerateCluster(c.Name, c.Endpoints, false)
+		res := common.ConvertClusterToResource(clustercfg, c.Name)
+		resources = append(resources, res)
+	}
+
+	resp := common.GenerateDeltaDiscoveryResponseWithRemovedResources(resource.ClusterType, nonce, resources, nil)
+	s.responseChan <- resp
+}
+
 func (s *cdsServerImpl) DeltaClusters(stream cluster.ClusterDiscoveryService_DeltaClustersServer) error {
 	api.LogInfof("new delta clusters stream: %v", stream)
 
@@ -140,10 +167,9 @@ func (s *cdsServerImpl) DeltaClusters(stream cluster.ClusterDiscoveryService_Del
 				continue
 			}
 
-			// TODO: delta watching cluster
-			for _, r := range req.ResourceNamesSubscribe {
-				api.LogInfof("delta watching cluster: %s", r)
-			}
+			// delta watching cluster
+			api.LogInfof("delta watching cluster: %+v", req.ResourceNamesSubscribe)
+			s.processSubscribedClusters(req.ResourceNamesSubscribe)
 		}
 	}
 }

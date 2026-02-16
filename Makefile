@@ -187,9 +187,19 @@ stop-aigw:
 
 .PHONY: build-image
 build-image:
-	docker build -t aigw -f Dockerfile . \
+	docker build -t aigw-image/aigw:v1 -f Dockerfile . \
 		--build-arg BASE_IMAGE=${PROXY_IMAGE} \
 		--build-arg BUILD_IMAGE=${BUILD_IMAGE}
+
+.PHONY: start-aigw-k8s-pod
+start-aigw-k8s-pod:
+	kind load docker-image aigw-image/aigw:v1 --name aigw-llm-service
+	ISTIO_K8S_HOST := "istiod.istio-system.svc.cluster.local"
+	cat etc/envoy-istio.yaml \
+		| sed "s/ISTIO_ENDPOINT/${ISTIO_K8S_HOST}/" \
+		> etc/envoy-k8s.yaml
+	kubectl create configmap envoy-config --from-file=$(PWD)/etc/envoy-k8s.yaml
+	kubectl apply -f $(PWD)/etc/aigw-k8s-pod.yaml
 
 LOG_LEVEL = info
 PILOT_IMAGE = $(DOCKER_MIRROR)docker.io/istio/pilot:1.27.3
@@ -215,3 +225,10 @@ start-istio:
 .PHONY: stop-istio
 stop-istio:
 	docker stop dev_istio
+
+.PHONY: start-mock-service
+start-mock-service:
+	cd $(PWD)/test/service_discovery/
+	docker build -t aigw-image/mock-llm:v1 .
+	kind load docker-image aigw-image/mock-llm:v1 --name aigw-llm-service
+	kubectl apply -f mock_service_config.yaml
