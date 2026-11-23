@@ -15,7 +15,7 @@ require (
 
 require (
 	github.com/cncf/xds/go v0.0.0-20240905190251-b4127c9b8d78 // indirect
-	github.com/envoyproxy/envoy v1.35.3
+	github.com/envoyproxy/envoy v1.35.9
 	github.com/envoyproxy/go-control-plane v0.13.2-0.20241022220226-23b7e55d7f65
 	github.com/envoyproxy/protoc-gen-validate v1.1.0
 	github.com/golang/protobuf v1.5.4 // indirect
