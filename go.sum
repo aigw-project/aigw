@@ -34,8 +34,8 @@ github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSs
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/envoyproxy/envoy v1.35.3 h1:oODJ1pf6nZRLHl7xMCb1AXaLSM6eH+RzMu6DEFfEczw=
-github.com/envoyproxy/envoy v1.35.3/go.mod h1:A/vRPuqivdZBAr0NfT3sccV8KtY07B2PyvILAdV0qCU=
+github.com/envoyproxy/envoy v1.35.9 h1:PrLfn6mZgWmbaZEVXJu7JPb3R1hiG7KxJ/Iyic7nxCA=
+github.com/envoyproxy/envoy v1.35.9/go.mod h1:A/vRPuqivdZBAr0NfT3sccV8KtY07B2PyvILAdV0qCU=
 github.com/envoyproxy/go-control-plane v0.13.2-0.20241022220226-23b7e55d7f65 h1:MyrjwzTD9X0BbbUDh5WT2IUkFP8adIF90TQFxDpTZ1w=
 github.com/envoyproxy/go-control-plane v0.13.2-0.20241022220226-23b7e55d7f65/go.mod h1:X45hY0mufo6Fd0KW3rqsGvQMw58jvjymeCzBU3mWyHw=
 github.com/envoyproxy/protoc-gen-validate v1.1.0 h1:tntQDh69XqOCOZsDz0lVJQez/2L6Uu2PdjCQwWCJ3bM=
